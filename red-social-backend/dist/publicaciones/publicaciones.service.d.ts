@@ -1,0 +1,17 @@
+import { Model } from 'mongoose';
+import { Publicacion, PublicacionDocument } from './schemas/publicacion.schema';
+import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
+import { ActualizarPublicacionDto } from './dto/actualizar-publicacion.dto';
+import { CrearComentarioDto } from './dto/crear-comentario.dto';
+export declare class PublicacionesService {
+    private publicacionModel;
+    constructor(publicacionModel: Model<PublicacionDocument>);
+    crear(crearPublicacionDto: CrearPublicacionDto, autorId: string): Promise<Publicacion>;
+    obtenerTodas(): Promise<Publicacion[]>;
+    obtenerPorId(id: string): Promise<PublicacionDocument>;
+    obtenerPorUsuario(usuarioId: string): Promise<Publicacion[]>;
+    actualizar(id: string, actualizarPublicacionDto: ActualizarPublicacionDto, usuarioId: string): Promise<PublicacionDocument | null>;
+    eliminar(id: string, usuarioId: string): Promise<void>;
+    darLike(id: string, usuarioId: string): Promise<PublicacionDocument | null>;
+    agregarComentario(id: string, crearComentarioDto: CrearComentarioDto, usuarioId: string): Promise<PublicacionDocument | null>;
+}

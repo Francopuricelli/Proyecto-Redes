@@ -1,0 +1,193 @@
+<div class="publicaciones-container">
+  <!-- Header de la aplicación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="#">
+        <i class="fas fa-users me-2"></i>Red Social
+      </a>
+      
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" routerLink="/perfil">
+          <i class="fas fa-user me-1"></i>Mi Perfil
+        </a>
+        <a class="nav-link" href="#" (click)="logout()">
+          <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <!-- Botón para nueva publicación -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center" *ngIf="!showNewPostForm">
+            <button class="btn btn-primary btn-lg" (click)="toggleNewPostForm()">
+              <i class="fas fa-plus me-2"></i>¿Qué estás pensando?
+            </button>
+          </div>
+          
+          <!-- Formulario de nueva publicación -->
+          <div class="card-body" *ngIf="showNewPostForm">
+            <form [formGroup]="nuevaPublicacionForm" (ngSubmit)="crearPublicacion()">
+              <div class="mb-3">
+                <label for="titulo" class="form-label fw-bold">Título</label>
+                <input
+                  type="text"
+                  id="titulo"
+                  class="form-control"
+                  formControlName="titulo"
+                  placeholder="¿De qué quieres hablar?"
+                  [class.is-invalid]="nuevaPublicacionForm.get('titulo')?.invalid && nuevaPublicacionForm.get('titulo')?.touched">
+              </div>
+
+              <div class="mb-3">
+                <label for="contenido" class="form-label fw-bold">Contenido</label>
+                <textarea
+                  id="contenido"
+                  class="form-control"
+                  rows="4"
+                  formControlName="contenido"
+                  placeholder="Comparte tus pensamientos..."
+                  [class.is-invalid]="nuevaPublicacionForm.get('contenido')?.invalid && nuevaPublicacionForm.get('contenido')?.touched"></textarea>
+                <div class="invalid-feedback">
+                  El contenido no puede estar vacío.
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="imagen" class="form-label fw-bold">Imagen (Opcional)</label>
+                <input
+                  type="url"
+                  id="imagen"
+                  class="form-control"
+                  formControlName="imagen"
+                  placeholder="URL de la imagen">
+              </div>
+
+              <div class="d-flex gap-2">
+                <button
+                  type="submit"
+                  class="btn btn-success"
+                  [disabled]="nuevaPublicacionForm.invalid || isCreatingPost">
+                  <span *ngIf="isCreatingPost" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                  <i *ngIf="!isCreatingPost" class="fas fa-share me-2"></i>
+                  {{ isCreatingPost ? 'Publicando...' : 'Publicar' }}
+                </button>
+                <button type="button" class="btn btn-secondary" (click)="toggleNewPostForm()">
+                  <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista de publicaciones -->
+    <div class="row">
+      <div class="col-12 col-lg-8 mx-auto">
+        <div class="publicacion-card mb-4" *ngFor="let publicacion of publicaciones">
+          <div class="card border-0 shadow-sm">
+            <!-- Header de la publicación -->
+            <div class="card-header bg-white border-0 pb-0">
+              <div class="d-flex align-items-center">
+                <div class="avatar me-3">
+                  <i class="fas fa-user-circle fa-2x text-primary"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <h6 class="mb-0 fw-bold">{{ getAuthorName(publicacion.autor) }}</h6>
+                  <small class="text-muted">{{ formatDate(publicacion.fechaCreacion) }}</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contenido de la publicación -->
+            <div class="card-body">
+              <h5 class="card-title">{{ publicacion.titulo }}</h5>
+              <p class="card-text">{{ publicacion.contenido }}</p>
+              
+              <img
+                *ngIf="publicacion.imagen"
+                [src]="publicacion.imagen"
+                class="img-fluid rounded mb-3"
+                [alt]="publicacion.titulo">
+            </div>
+
+            <!-- Acciones de la publicación -->
+            <div class="card-footer bg-white border-0">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <button
+                  class="btn btn-link p-0 text-decoration-none"
+                  [class.text-danger]="hasLiked(publicacion)"
+                  [class.text-muted]="!hasLiked(publicacion)"
+                  (click)="toggleLike(publicacion.id!)">
+                  <i class="fas fa-heart me-1"></i>
+                  {{ publicacion.likes.length }} Me gusta
+                </button>
+
+                <button
+                  class="btn btn-link p-0 text-muted text-decoration-none"
+                  (click)="toggleComments(publicacion.id!)">
+                  <i class="fas fa-comment me-1"></i>
+                  {{ publicacion.comentarios.length }} Comentarios
+                </button>
+              </div>
+
+              <!-- Sección de comentarios -->
+              <div *ngIf="showComments[publicacion.id!]" class="comments-section">
+                <hr>
+                
+                <!-- Formulario para nuevo comentario -->
+                <form [formGroup]="comentariosForms[publicacion.id!]" (ngSubmit)="agregarComentario(publicacion.id!)" class="mb-3">
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      class="form-control"
+                      formControlName="mensaje"
+                      placeholder="Escribe un comentario...">
+                    <button
+                      type="submit"
+                      class="btn btn-primary"
+                      [disabled]="comentariosForms[publicacion.id!]?.invalid">
+                      <i class="fas fa-paper-plane"></i>
+                    </button>
+                  </div>
+                </form>
+
+                <!-- Lista de comentarios -->
+                <div class="comentario mb-2" *ngFor="let comentario of publicacion.comentarios">
+                  <div class="d-flex">
+                    <div class="avatar-small me-2">
+                      <i class="fas fa-user-circle text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="bg-light rounded p-2">
+                        <small class="fw-bold">{{ getAuthorName(comentario.autor) }}</small>
+                        <p class="mb-1">{{ comentario.comentario }}</p>
+                      </div>
+                      <small class="text-muted">{{ formatDate(comentario.fecha) }}</small>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="publicacion.comentarios.length === 0" class="text-center text-muted py-3">
+                  <i class="fas fa-comment-slash me-2"></i>
+                  No hay comentarios aún. ¡Sé el primero en comentar!
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensaje cuando no hay publicaciones -->
+        <div *ngIf="publicaciones.length === 0" class="text-center py-5">
+          <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
+          <h4 class="text-muted">No hay publicaciones aún</h4>
+          <p class="text-muted">¡Sé el primero en compartir algo interesante!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
