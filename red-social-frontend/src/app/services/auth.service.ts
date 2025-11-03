@@ -27,8 +27,7 @@ export class AuthService {
 
   login(loginData: LoginRequest): Observable<any> {
     return this.http.post<any>(`${this.API_URL}/login`, {
-      correo: loginData.usuario.includes('@') ? loginData.usuario : undefined,
-      nombreUsuario: loginData.usuario.includes('@') ? undefined : loginData.usuario,
+      usuario: loginData.usuario,
       contraseña: loginData.contraseña
     }).pipe(
       tap(response => {
