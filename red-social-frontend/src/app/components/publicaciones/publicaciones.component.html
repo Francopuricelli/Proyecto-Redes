@@ -114,8 +114,19 @@
       </div>
     </div>
 
+    <!-- Mensaje cuando está creando publicación -->
+    <div class="row" *ngIf="showNewPostForm">
+      <div class="col-12 col-lg-8 mx-auto">
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-edit fa-3x mb-3 text-primary"></i>
+          <h5>Creando nueva publicación</h5>
+          <p class="mb-0">Completa el formulario arriba para compartir tus ideas</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Lista de publicaciones -->
-    <div class="row">
+    <div class="row" *ngIf="!showNewPostForm">
       <div class="col-12 col-lg-8 mx-auto">
         <div class="publicacion-card mb-4" *ngFor="let publicacion of publicaciones">
           <div class="card border-0 shadow-sm">

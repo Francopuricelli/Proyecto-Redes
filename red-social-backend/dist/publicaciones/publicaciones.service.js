@@ -27,15 +27,27 @@ let PublicacionesService = class PublicacionesService {
             ...crearPublicacionDto,
             autor: new mongoose_2.Types.ObjectId(autorId)
         });
-        return await publicacion.save();
+        const publicacionGuardada = await publicacion.save();
+        const publicacionObj = publicacionGuardada.toObject();
+        if (publicacionObj.imagen) {
+            publicacionObj.imagen = `http://localhost:3000/uploads/publicaciones/${publicacionObj.imagen}`;
+        }
+        return publicacionObj;
     }
     async obtenerTodas() {
-        return await this.publicacionModel
+        const publicaciones = await this.publicacionModel
             .find({ eliminada: false })
             .populate('autor', 'nombre email avatar')
             .populate('comentarios.autor', 'nombre email avatar')
             .sort({ fechaCreacion: -1 })
             .exec();
+        return publicaciones.map(pub => {
+            const publicacionObj = pub.toObject();
+            if (publicacionObj.imagen) {
+                publicacionObj.imagen = `http://localhost:3000/uploads/publicaciones/${publicacionObj.imagen}`;
+            }
+            return publicacionObj;
+        });
     }
     async obtenerPorId(id) {
         const publicacion = await this.publicacionModel
