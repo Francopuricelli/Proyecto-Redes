@@ -48,13 +48,25 @@
 
 .btn-link {
   border: none;
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   font-weight: 500;
-  transition: all 0.2s ease;
-}
+  transition: all 0.2s ease-in-out;
+  border-radius: 8px;
+  text-decoration: none;
 
-.btn-link:hover {
-  transform: scale(1.05);
+  &:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    transform: translateY(-1px);
+    text-decoration: none;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+
+  i {
+    font-size: 1.1rem;
+  }
 }
 
 .btn-link.text-danger:hover {
@@ -158,4 +170,43 @@
 
 .comments-section {
   animation: fadeIn 0.3s ease-out;
+}
+
+// Estilos para vista previa de imagen
+.image-preview {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+
+  img {
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .remove-image-btn {
+    background: white;
+    border: 2px solid #e9ecef;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #f8f9fa;
+      border-color: #dc3545;
+      transform: scale(1.1);
+    }
+
+    i {
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// Responsive para botones de imagen
+@media (max-width: 576px) {
+  .btn-link {
+    padding: 0.5rem;
+    
+    i {
+      font-size: 1.2rem;
+    }
+  }
 }

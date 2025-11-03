@@ -17,16 +17,34 @@ export class PublicacionesService {
       ...crearPublicacionDto,
       autor: new Types.ObjectId(autorId)
     });
-    return await publicacion.save();
+    
+    const publicacionGuardada = await publicacion.save();
+    
+    // Convertir a objeto y agregar URL completa para imagen
+    const publicacionObj = publicacionGuardada.toObject();
+    if (publicacionObj.imagen) {
+      publicacionObj.imagen = `http://localhost:3000/uploads/publicaciones/${publicacionObj.imagen}`;
+    }
+    
+    return publicacionObj;
   }
 
   async obtenerTodas(): Promise<Publicacion[]> {
-    return await this.publicacionModel
+    const publicaciones = await this.publicacionModel
       .find({ eliminada: false })
       .populate('autor', 'nombre email avatar')
       .populate('comentarios.autor', 'nombre email avatar')
       .sort({ fechaCreacion: -1 })
       .exec();
+
+    // Convertir nombres de archivo a URLs completas
+    return publicaciones.map(pub => {
+      const publicacionObj = pub.toObject();
+      if (publicacionObj.imagen) {
+        publicacionObj.imagen = `http://localhost:3000/uploads/publicaciones/${publicacionObj.imagen}`;
+      }
+      return publicacionObj;
+    });
   }
 
   async obtenerPorId(id: string): Promise<PublicacionDocument> {

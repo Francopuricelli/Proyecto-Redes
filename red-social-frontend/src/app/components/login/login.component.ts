@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { finalize } from 'rxjs/operators';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-login',
@@ -47,22 +49,49 @@ export class LoginComponent {
       this.isLoading = true;
       this.errorMessage = '';
       
-      this.authService.login(this.loginForm.value).subscribe({
-        next: (user) => {
-          this.isLoading = false;
-          this.router.navigate(['/publicaciones']);
-        },
-        error: (error) => {
-          this.isLoading = false;
-          this.errorMessage = 'Error al iniciar sesión. Verifique sus credenciales.';
-        }
-      });
+      this.authService.login(this.loginForm.value)
+        .pipe(
+          finalize(() => {
+            // Esto SIEMPRE se ejecuta, haya error o no
+            this.isLoading = false;
+          })
+        )
+        .subscribe({
+          next: (response) => {
+            // Mostrar mensaje de éxito
+            Swal.fire({
+              icon: 'success',
+              title: '¡Bienvenido!',
+              text: 'Inicio de sesión exitoso',
+              timer: 1500,
+              showConfirmButton: false
+            });
+            this.router.navigate(['/publicaciones']);
+          },
+          error: (error) => {
+            console.error('Error de login:', error);
+            // Mostrar error con SweetAlert
+            Swal.fire({
+              icon: 'error',
+              title: 'Error de autenticación',
+              text: 'Las credenciales son incorrectas. Por favor, verifique su usuario y contraseña.',
+              confirmButtonText: 'Intentar de nuevo',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
     } else {
+      // Mostrar alerta si el formulario no es válido
+      Swal.fire({
+        icon: 'warning',
+        title: 'Formulario incompleto',
+        text: 'Por favor, complete todos los campos correctamente.',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#ffc107'
+      });
       this.markFormGroupTouched();
     }
-  }
-
-  markFormGroupTouched() {
+  }  markFormGroupTouched() {
     Object.keys(this.loginForm.controls).forEach(key => {
       const control = this.loginForm.get(key);
       control?.markAsTouched();
@@ -73,7 +102,7 @@ export class LoginComponent {
     const control = this.loginForm.get(fieldName);
     if (control?.errors && control.touched) {
       if (control.errors['required']) {
-        return `${fieldName === 'usuario' ? 'Usuario/Correo' : 'Contraseña'} es requerido`;
+        return `${fieldName === 'usuario' ? 'Usuario/Correo' : 'Contraseña'} es requerida`;
       }
       if (control.errors['minlength']) {
         const requiredLength = control.errors['minlength'].requiredLength;

@@ -23,8 +23,13 @@ export class PublicacionService {
     return this.http.get<Publicacion[]>(this.API_URL);
   }
 
-  crearPublicacion(publicacion: Omit<Publicacion, 'id' | 'fechaCreacion' | 'likes' | 'comentarios'>): Observable<Publicacion> {
-    return this.http.post<Publicacion>(this.API_URL, publicacion, { headers: this.getHeaders() });
+  crearPublicacion(publicacion: Omit<Publicacion, 'id' | 'fechaCreacion' | 'likes' | 'comentarios'> | FormData): Observable<Publicacion> {
+    // Si es FormData, no enviamos Content-Type header (lo maneja automáticamente el navegador)
+    const headers = publicacion instanceof FormData ? 
+      new HttpHeaders({ 'Authorization': this.authService.getToken() ? `Bearer ${this.authService.getToken()}` : '' }) :
+      this.getHeaders();
+    
+    return this.http.post<Publicacion>(this.API_URL, publicacion, { headers });
   }
 
   darLike(publicacionId: string): Observable<Publicacion> {

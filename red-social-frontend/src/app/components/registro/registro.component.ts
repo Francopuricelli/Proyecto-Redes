@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { finalize } from 'rxjs/operators';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-registro',
@@ -113,17 +115,55 @@ export class RegistroComponent {
         formData.imagenPerfil = URL.createObjectURL(this.selectedFile);
       }
       
-      this.authService.register(formData).subscribe({
-        next: (user) => {
-          this.isLoading = false;
-          this.router.navigate(['/publicaciones']);
-        },
-        error: (error) => {
-          this.isLoading = false;
-          this.errorMessage = 'Error al registrar usuario. Intente nuevamente.';
-        }
+      this.authService.register(formData)
+        .pipe(
+          finalize(() => {
+            // Esto SIEMPRE se ejecuta, haya error o no
+            this.isLoading = false;
+          })
+        )
+        .subscribe({
+          next: (response) => {
+            // Mostrar mensaje de éxito
+            Swal.fire({
+              icon: 'success',
+              title: '¡Registro exitoso!',
+              text: 'Tu cuenta ha sido creada correctamente. ¡Bienvenido!',
+              confirmButtonText: 'Continuar',
+              confirmButtonColor: '#28a745'
+            }).then(() => {
+              this.router.navigate(['/publicaciones']);
+            });
+          },
+          error: (error) => {
+            console.error('Error de registro:', error);
+            // Mostrar error con SweetAlert
+            let errorMessage = 'Error al registrar usuario. Intente nuevamente.';
+            
+            if (error.status === 400) {
+              errorMessage = 'Los datos ingresados no son válidos. Verifique la información.';
+            } else if (error.status === 409) {
+              errorMessage = 'El correo o nombre de usuario ya están registrados.';
+            }
+            
+            Swal.fire({
+              icon: 'error',
+              title: 'Error en el registro',
+              text: errorMessage,
+              confirmButtonText: 'Intentar de nuevo',
+              confirmButtonColor: '#dc3545'
+            });
+          }
       });
     } else {
+      // Mostrar alerta si el formulario no es válido
+      Swal.fire({
+        icon: 'warning',
+        title: 'Formulario incompleto',
+        text: 'Por favor, complete todos los campos correctamente y asegúrese de que las contraseñas coincidan.',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#ffc107'
+      });
       this.markFormGroupTouched();
     }
   }

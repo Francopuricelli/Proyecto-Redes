@@ -4,8 +4,10 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { RouterModule } from '@angular/router';
 import { PublicacionService } from '../../services/publicacion.service';
 import { AuthService } from '../../services/auth.service';
+import { ImageService } from '../../services/image.service';
 import { Publicacion, Comentario } from '../../models/publicacion.model';
 import { User } from '../../models/user.model';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-publicaciones',
@@ -22,11 +24,14 @@ export class PublicacionesComponent implements OnInit {
   currentUser: User | null = null;
   isCreatingPost = false;
   showNewPostForm = false;
+  selectedImageFile: File | null = null;
+  imagePreview: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private publicacionService: PublicacionService,
-    public authService: AuthService
+    public authService: AuthService,
+    private imageService: ImageService
   ) {
     this.nuevaPublicacionForm = this.fb.group({
       titulo: ['', [Validators.required, Validators.minLength(5)]],
@@ -43,6 +48,7 @@ export class PublicacionesComponent implements OnInit {
   cargarPublicaciones() {
     this.publicacionService.getPublicaciones().subscribe({
       next: (publicaciones) => {
+        console.log('Publicaciones cargadas:', publicaciones);
         this.publicaciones = publicaciones;
         // Inicializar formularios de comentarios para cada publicación
         this.publicaciones.forEach(pub => {
@@ -61,28 +67,144 @@ export class PublicacionesComponent implements OnInit {
     this.showNewPostForm = !this.showNewPostForm;
     if (!this.showNewPostForm) {
       this.nuevaPublicacionForm.reset();
+      this.clearImage();
     }
+  }
+
+  // Seleccionar imagen desde galería
+  selectFromGallery() {
+    this.imageService.selectFromGallery({ 
+      maxWidth: 1920, 
+      maxHeight: 1080, 
+      quality: 0.8 
+    }).subscribe({
+      next: (file) => {
+        if (file) {
+          this.handleSelectedImage(file);
+        }
+      },
+      error: (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Error al seleccionar la imagen: ' + error,
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    });
+  }
+
+  // Tomar foto con la cámara
+  takePhoto() {
+    this.imageService.takePhoto({ 
+      maxWidth: 1920, 
+      maxHeight: 1080, 
+      quality: 0.8 
+    }).subscribe({
+      next: (file) => {
+        if (file) {
+          this.handleSelectedImage(file);
+        }
+      },
+      error: (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de cámara',
+          text: 'No se pudo acceder a la cámara: ' + error,
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    });
+  }
+
+  // Manejar imagen seleccionada
+  private handleSelectedImage(file: File) {
+    this.selectedImageFile = file;
+    
+    // Crear preview
+    this.imageService.fileToBase64(file).subscribe({
+      next: (base64) => {
+        this.imagePreview = base64;
+      },
+      error: (error) => {
+        console.error('Error al crear preview:', error);
+      }
+    });
+  }
+
+  // Limpiar imagen seleccionada
+  clearImage() {
+    this.selectedImageFile = null;
+    this.imagePreview = null;
+  }
+
+  // Mostrar opciones de imagen
+  showImageOptions() {
+    Swal.fire({
+      title: 'Agregar Imagen',
+      text: 'Selecciona una opción:',
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: '📱 Tomar Foto',
+      denyButtonText: '🖼️ Desde Galería',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#28a745',
+      denyButtonColor: '#007bff',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.takePhoto();
+      } else if (result.isDenied) {
+        this.selectFromGallery();
+      }
+    });
   }
 
   crearPublicacion() {
     if (this.nuevaPublicacionForm.valid && this.currentUser) {
       this.isCreatingPost = true;
       
-      const nuevaPublicacion = {
-        ...this.nuevaPublicacionForm.value,
-        autor: this.currentUser.id!
-      };
+      // Crear FormData para enviar archivo de imagen
+      const formData = new FormData();
+      formData.append('titulo', this.nuevaPublicacionForm.value.titulo);
+      formData.append('contenido', this.nuevaPublicacionForm.value.contenido);
+      formData.append('autor', this.currentUser.id!);
+      
+      // Agregar imagen si existe
+      if (this.selectedImageFile) {
+        formData.append('imagen', this.selectedImageFile, this.selectedImageFile.name);
+      }
 
-      this.publicacionService.crearPublicacion(nuevaPublicacion).subscribe({
+      this.publicacionService.crearPublicacion(formData).subscribe({
         next: (publicacion) => {
+          console.log('Publicación creada:', publicacion);
           this.cargarPublicaciones();
           this.nuevaPublicacionForm.reset();
+          this.clearImage();
           this.showNewPostForm = false;
           this.isCreatingPost = false;
+          
+          // Mostrar mensaje de éxito
+          Swal.fire({
+            icon: 'success',
+            title: '¡Publicación creada!',
+            text: 'Tu publicación se ha compartido correctamente',
+            timer: 2000,
+            showConfirmButton: false
+          });
         },
         error: (error) => {
           console.error('Error al crear publicación:', error);
           this.isCreatingPost = false;
+          
+          // Mostrar mensaje de error
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo crear la publicación. Intenta nuevamente.',
+            confirmButtonColor: '#dc3545'
+          });
         }
       });
     }
