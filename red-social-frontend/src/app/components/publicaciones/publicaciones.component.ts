@@ -1,37 +1,53 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PublicacionService } from '../../services/publicacion.service';
 import { AuthService } from '../../services/auth.service';
 import { ImageService } from '../../services/image.service';
+import { ThemeService } from '../../services/theme.service';
 import { Publicacion, Comentario } from '../../models/publicacion.model';
 import { User } from '../../models/user.model';
+import { PublicacionCardComponent } from '../publicacion-card/publicacion-card';
 import Swal from 'sweetalert2';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-publicaciones',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, PublicacionCardComponent],
   templateUrl: './publicaciones.component.html',
   styleUrls: ['./publicaciones.component.scss']
 })
 export class PublicacionesComponent implements OnInit {
   publicaciones: Publicacion[] = [];
   nuevaPublicacionForm: FormGroup;
-  comentariosForms: { [key: string]: FormGroup } = {};
-  showComments: { [key: string]: boolean } = {};
   currentUser: User | null = null;
   isCreatingPost = false;
   showNewPostForm = false;
   selectedImageFile: File | null = null;
   imagePreview: string | null = null;
+  
+  // Paginación y ordenamiento
+  ordenarPor: 'fecha' | 'likes' = 'fecha';
+  offset: number = 0;
+  limit: number = 10;
+  hayMasPublicaciones: boolean = true;
+  cargandoMas: boolean = false;
+  
+  // Modal de eliminación
+  mostrarModalEliminar = false;
+  publicacionAEliminar: string | null = null;
+  successMessage = '';
+  errorMessage = '';
 
   constructor(
     private fb: FormBuilder,
     private publicacionService: PublicacionService,
     public authService: AuthService,
-    private imageService: ImageService
+    private imageService: ImageService,
+    private cdr: ChangeDetectorRef,
+    public themeService: ThemeService
   ) {
     this.nuevaPublicacionForm = this.fb.group({
       titulo: ['', [Validators.required, Validators.minLength(5)]],
@@ -45,22 +61,48 @@ export class PublicacionesComponent implements OnInit {
     this.cargarPublicaciones();
   }
 
-  cargarPublicaciones() {
-    this.publicacionService.getPublicaciones().subscribe({
+  cargarPublicaciones(reset: boolean = true) {
+    if (reset) {
+      this.offset = 0;
+      this.publicaciones = [];
+    }
+
+    // Cargar todas las publicaciones disponibles (aumentar el límite inicial)
+    this.publicacionService.getPublicaciones(this.ordenarPor, undefined, this.offset, 100).subscribe({
       next: (publicaciones) => {
         console.log('Publicaciones cargadas:', publicaciones);
-        this.publicaciones = publicaciones;
-        // Inicializar formularios de comentarios para cada publicación
-        this.publicaciones.forEach(pub => {
-          if (pub.id) {
-            this.comentariosForms[pub.id] = this.fb.group({
-              comentario: ['', [Validators.required, Validators.minLength(1)]]
-            });
-            this.showComments[pub.id] = false;
-          }
-        });
+        this.publicaciones = [...this.publicaciones, ...publicaciones];
+        this.hayMasPublicaciones = publicaciones.length === 100;
+      },
+      error: (error) => {
+        console.error('Error al cargar publicaciones:', error);
       }
     });
+  }
+
+  cambiarOrden(orden: 'fecha' | 'likes') {
+    this.ordenarPor = orden;
+    this.cargarPublicaciones(true);
+  }
+
+  cargarMasPublicaciones() {
+    if (this.cargandoMas || !this.hayMasPublicaciones) return;
+    
+    this.cargandoMas = true;
+    this.offset += this.limit;
+    
+    this.publicacionService.getPublicaciones(this.ordenarPor, undefined, this.offset, this.limit)
+      .pipe(finalize(() => this.cargandoMas = false))
+      .subscribe({
+        next: (publicaciones) => {
+          this.publicaciones = [...this.publicaciones, ...publicaciones];
+          this.hayMasPublicaciones = publicaciones.length === this.limit;
+        },
+        error: (error) => {
+          console.error('Error al cargar más publicaciones:', error);
+          this.offset -= this.limit; // Revertir el offset
+        }
+      });
   }
 
   toggleNewPostForm() {
@@ -84,12 +126,7 @@ export class PublicacionesComponent implements OnInit {
         }
       },
       error: (error) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Error al seleccionar la imagen: ' + error,
-          confirmButtonColor: '#dc3545'
-        });
+        console.error('Error al seleccionar imagen:', error);
       }
     });
   }
@@ -107,12 +144,7 @@ export class PublicacionesComponent implements OnInit {
         }
       },
       error: (error) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error de cámara',
-          text: 'No se pudo acceder a la cámara: ' + error,
-          confirmButtonColor: '#dc3545'
-        });
+        console.error('Error al acceder a la cámara:', error);
       }
     });
   }
@@ -184,83 +216,111 @@ export class PublicacionesComponent implements OnInit {
           this.clearImage();
           this.showNewPostForm = false;
           this.isCreatingPost = false;
-          
-          // Mostrar mensaje de éxito
-          Swal.fire({
-            icon: 'success',
-            title: '¡Publicación creada!',
-            text: 'Tu publicación se ha compartido correctamente',
-            timer: 2000,
-            showConfirmButton: false
-          });
         },
         error: (error) => {
           console.error('Error al crear publicación:', error);
           this.isCreatingPost = false;
-          
-          // Mostrar mensaje de error
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'No se pudo crear la publicación. Intenta nuevamente.',
-            confirmButtonColor: '#dc3545'
-          });
+          alert('No se pudo crear la publicación. Intenta nuevamente.');
         }
       });
     }
   }
 
-  toggleLike(publicacionId: string) {
-    if (this.currentUser?.id) {
-      this.publicacionService.darLike(publicacionId).subscribe({
-        next: () => {
-          this.cargarPublicaciones();
+  // Manejadores de eventos del publicacion-card
+  handleLike(publicacionId: string) {
+    this.publicacionService.darLike(publicacionId).subscribe({
+      next: () => {
+        const index = this.publicaciones.findIndex(p => p.id === publicacionId);
+        if (index !== -1 && this.currentUser?.id) {
+          this.publicaciones[index].likes.push(this.currentUser.id);
+          if (this.publicaciones[index].cantidadLikes !== undefined) {
+            this.publicaciones[index].cantidadLikes!++;
+          }
         }
-      });
-    }
+      },
+      error: (error) => {
+        console.error('Error al dar like:', error);
+      }
+    });
   }
 
-  hasLiked(publicacion: Publicacion): boolean {
-    return this.currentUser?.id ? publicacion.likes.includes(this.currentUser.id) : false;
-  }
-
-  toggleComments(publicacionId: string) {
-    this.showComments[publicacionId] = !this.showComments[publicacionId];
-  }
-
-  agregarComentario(publicacionId: string) {
-    const form = this.comentariosForms[publicacionId];
-    if (form?.valid && this.currentUser?.id) {
-      const comentario = {
-        comentario: form.value.comentario
-      };
-
-      this.publicacionService.agregarComentario(publicacionId, comentario).subscribe({
-        next: () => {
-          this.cargarPublicaciones();
-          form.reset();
+  handleUnlike(publicacionId: string) {
+    this.publicacionService.quitarLike(publicacionId).subscribe({
+      next: () => {
+        const index = this.publicaciones.findIndex(p => p.id === publicacionId);
+        if (index !== -1 && this.currentUser?.id) {
+          this.publicaciones[index].likes = this.publicaciones[index].likes.filter(
+            id => id !== this.currentUser!.id
+          );
+          if (this.publicaciones[index].cantidadLikes !== undefined) {
+            this.publicaciones[index].cantidadLikes!--;
+          }
         }
-      });
-    }
+      },
+      error: (error) => {
+        console.error('Error al quitar like:', error);
+      }
+    });
   }
 
-  getAuthorName(autorId: string): string {
-    // En una implementación real, buscaríamos el usuario por ID
-    return this.currentUser?.nombre + ' ' + this.currentUser?.apellido || 'Usuario';
+  handleDelete(publicacionId: string) {
+    this.publicacionAEliminar = publicacionId;
+    this.mostrarModalEliminar = true;
   }
 
-  formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  cancelarEliminacion() {
+    this.mostrarModalEliminar = false;
+    this.publicacionAEliminar = null;
+  }
+
+  confirmarEliminacion() {
+    if (!this.publicacionAEliminar) return;
+
+    this.publicacionService.eliminarPublicacion(this.publicacionAEliminar).subscribe({
+      next: () => {
+        this.publicaciones = this.publicaciones.filter(p => p.id !== this.publicacionAEliminar);
+        this.mostrarModalEliminar = false;
+        this.publicacionAEliminar = null;
+        this.successMessage = 'Publicación eliminada correctamente';
+        this.cdr.detectChanges();
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => {
+          this.successMessage = '';
+          this.cdr.detectChanges();
+        }, 3000);
+      },
+      error: (error) => {
+        console.error('Error al eliminar publicación:', error);
+        this.errorMessage = 'No se pudo eliminar la publicación';
+        this.mostrarModalEliminar = false;
+        this.publicacionAEliminar = null;
+        this.cdr.detectChanges();
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => {
+          this.errorMessage = '';
+          this.cdr.detectChanges();
+        }, 3000);
+      }
+    });
+  }
+
+  handleComment(event: { publicacionId: string, comentario: string }) {
+    this.publicacionService.agregarComentario(event.publicacionId, { comentario: event.comentario }).subscribe({
+      next: (publicacionActualizada) => {
+        const index = this.publicaciones.findIndex(p => p.id === event.publicacionId);
+        if (index !== -1) {
+          this.publicaciones[index] = publicacionActualizada;
+        }
+      },
+      error: (error) => {
+        console.error('Error al agregar comentario:', error);
+      }
     });
   }
 
   logout(): void {
     this.authService.logout();
-    // Redirigir al login si es necesario
   }
 }

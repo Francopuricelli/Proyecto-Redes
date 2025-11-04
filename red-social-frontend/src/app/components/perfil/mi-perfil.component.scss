@@ -1,6 +1,23 @@
 .perfil-container {
   min-height: 100vh;
   background-color: #f8f9fa;
+  transition: background-color 0.3s ease;
+}
+
+// Dark mode styles
+:host-context(body.dark-mode) {
+  .perfil-container {
+    background-color: #1a1a1a;
+  }
+  
+  .info-item {
+    background-color: #252525;
+    border-left-color: #0d6efd;
+  }
+  
+  .descripcion-box {
+    background-color: #252525;
+  }
 }
 
 .navbar-brand {

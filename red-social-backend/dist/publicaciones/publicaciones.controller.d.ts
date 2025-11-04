@@ -2,11 +2,13 @@ import { PublicacionesService } from './publicaciones.service';
 import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
 import { ActualizarPublicacionDto } from './dto/actualizar-publicacion.dto';
 import { CrearComentarioDto } from './dto/crear-comentario.dto';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 export declare class PublicacionesController {
     private readonly publicacionesService;
-    constructor(publicacionesService: PublicacionesService);
+    private readonly cloudinaryService;
+    constructor(publicacionesService: PublicacionesService, cloudinaryService: CloudinaryService);
     crear(crearPublicacionDto: CrearPublicacionDto, req: any, file: Express.Multer.File): Promise<import("./schemas/publicacion.schema").Publicacion>;
-    obtenerTodas(): Promise<import("./schemas/publicacion.schema").Publicacion[]>;
+    obtenerTodas(ordenarPor?: 'fecha' | 'likes', usuarioId?: string, offset?: string, limit?: string): Promise<import("./schemas/publicacion.schema").Publicacion[]>;
     obtenerPorId(id: string): Promise<import("./schemas/publicacion.schema").PublicacionDocument>;
     obtenerPorUsuario(usuarioId: string): Promise<import("./schemas/publicacion.schema").Publicacion[]>;
     actualizar(id: string, actualizarPublicacionDto: ActualizarPublicacionDto, req: any): Promise<import("./schemas/publicacion.schema").PublicacionDocument | null>;
@@ -14,5 +16,6 @@ export declare class PublicacionesController {
         mensaje: string;
     }>;
     darLike(id: string, req: any): Promise<import("./schemas/publicacion.schema").PublicacionDocument | null>;
+    quitarLike(id: string, req: any): Promise<import("./schemas/publicacion.schema").PublicacionDocument | null>;
     agregarComentario(id: string, crearComentarioDto: CrearComentarioDto, req: any): Promise<import("./schemas/publicacion.schema").PublicacionDocument | null>;
 }

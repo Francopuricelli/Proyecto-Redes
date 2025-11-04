@@ -1,14 +1,21 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { PublicacionService } from '../../services/publicacion.service';
+import { UserService } from '../../services/user.service';
+import { ThemeService } from '../../services/theme.service';
 import { User } from '../../models/user.model';
+import { Publicacion } from '../../models/publicacion.model';
+import { PublicacionCardComponent } from '../publicacion-card/publicacion-card';
+import { finalize } from 'rxjs/operators';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-mi-perfil',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, PublicacionCardComponent],
   templateUrl: './mi-perfil.component.html',
   styleUrls: ['./mi-perfil.component.scss']
 })
@@ -19,11 +26,32 @@ export class MiPerfilComponent implements OnInit {
   isLoading = false;
   successMessage = '';
   errorMessage = '';
+  misPublicaciones: Publicacion[] = [];
+  cargandoPublicaciones = false;
+  
+  // Paginación y ordenamiento para publicaciones
+  ordenarPor: 'fecha' | 'likes' = 'fecha';
+  offset: number = 0;
+  limit: number = 10;
+  hayMasPublicaciones: boolean = true;
+  cargandoMas: boolean = false;
+  
+  // Modal de eliminación
+  mostrarModalEliminar = false;
+  publicacionAEliminar: string | null = null;
+  
+  // Imagen de perfil
+  selectedImageFile: File | null = null;
+  imagePreview: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private publicacionService: PublicacionService,
+    private userService: UserService,
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    public themeService: ThemeService
   ) {
     this.perfilForm = this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(2)]],
@@ -42,6 +70,74 @@ export class MiPerfilComponent implements OnInit {
       return;
     }
     this.loadUserData();
+    this.cargarMisPublicaciones();
+  }
+
+  cargarMisPublicaciones(reset: boolean = true) {
+    if (!this.currentUser?.id) {
+      console.error('No hay usuario autenticado');
+      return;
+    }
+    
+    if (reset) {
+      this.offset = 0;
+      this.misPublicaciones = [];
+    }
+    
+    this.cargandoPublicaciones = true;
+
+    console.log('Cargando publicaciones del usuario:', this.currentUser.id);
+    console.log('Parámetros:', { ordenarPor: this.ordenarPor, offset: this.offset, limit: this.limit });
+    
+    this.publicacionService.getPublicaciones(this.ordenarPor, this.currentUser.id, this.offset, this.limit)
+      .pipe(
+        finalize(() => {
+          this.cargandoPublicaciones = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: (publicaciones) => {
+          console.log('Publicaciones recibidas:', publicaciones);
+          this.misPublicaciones = [...this.misPublicaciones, ...publicaciones];
+          this.hayMasPublicaciones = publicaciones.length === this.limit;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error al cargar publicaciones:', error);
+        }
+      });
+  }
+
+  cambiarOrden(orden: 'fecha' | 'likes') {
+    this.ordenarPor = orden;
+    this.cargarMisPublicaciones(true);
+  }
+
+  cargarMasPublicaciones() {
+    if (this.cargandoMas || !this.hayMasPublicaciones) return;
+    
+    this.cargandoMas = true;
+    this.offset += this.limit;
+    
+    this.publicacionService.getPublicaciones(this.ordenarPor, this.currentUser!.id, this.offset, this.limit)
+      .pipe(
+        finalize(() => {
+          this.cargandoMas = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: (publicaciones) => {
+          this.misPublicaciones = [...this.misPublicaciones, ...publicaciones];
+          this.hayMasPublicaciones = publicaciones.length === this.limit;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error al cargar más publicaciones:', error);
+          this.offset -= this.limit; // Revertir el offset
+        }
+      });
   }
 
   loadUserData() {
@@ -68,32 +164,63 @@ export class MiPerfilComponent implements OnInit {
     }
   }
 
+  onImageSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedImageFile = input.files[0];
+      
+      // Crear preview
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.imagePreview = e.target.result;
+      };
+      reader.readAsDataURL(this.selectedImageFile);
+    }
+  }
+
   onSubmit() {
     if (this.perfilForm.valid && this.currentUser) {
       this.isLoading = true;
       this.errorMessage = '';
       
-      // Simular actualización del perfil
-      setTimeout(() => {
-        const updatedUser: User = {
-          ...this.currentUser!,
-          ...this.perfilForm.value,
-          fechaNacimiento: new Date(this.perfilForm.value.fechaNacimiento)
-        };
-        
-        // Actualizar en localStorage (en implementación real sería una llamada al backend)
-        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-        this.currentUser = updatedUser;
-        
-        this.isLoading = false;
-        this.isEditing = false;
-        this.successMessage = 'Perfil actualizado exitosamente';
-        
-        // Limpiar el mensaje después de 3 segundos
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 3000);
-      }, 1000);
+      const formData = new FormData();
+      formData.append('nombre', this.perfilForm.value.nombre);
+      formData.append('apellido', this.perfilForm.value.apellido);
+      formData.append('correo', this.perfilForm.value.correo);
+      formData.append('nombreUsuario', this.perfilForm.value.nombreUsuario);
+      formData.append('fechaNacimiento', this.perfilForm.value.fechaNacimiento);
+      formData.append('descripcionBreve', this.perfilForm.value.descripcionBreve);
+      
+      if (this.selectedImageFile) {
+        formData.append('imagenPerfil', this.selectedImageFile);
+      }
+      
+      this.userService.updateProfile(formData).subscribe({
+        next: (updatedUser) => {
+          // Actualizar usuario en localStorage y en memoria
+          this.authService.updateCurrentUser(updatedUser);
+          this.currentUser = updatedUser;
+          
+          this.isLoading = false;
+          this.isEditing = false;
+          this.selectedImageFile = null;
+          this.imagePreview = null;
+          this.successMessage = 'Perfil actualizado exitosamente';
+          
+          setTimeout(() => {
+            this.successMessage = '';
+          }, 3000);
+        },
+        error: (error) => {
+          console.error('Error al actualizar perfil:', error);
+          this.isLoading = false;
+          this.errorMessage = 'Error al actualizar el perfil';
+          
+          setTimeout(() => {
+            this.errorMessage = '';
+          }, 3000);
+        }
+      });
     }
   }
 
@@ -156,5 +283,99 @@ export class MiPerfilComponent implements OnInit {
       'descripcionBreve': 'Descripción breve'
     };
     return labels[fieldName] || fieldName;
+  }
+
+  // Manejadores de eventos del publicacion-card
+  handleLike(publicacionId: string) {
+    this.publicacionService.darLike(publicacionId).subscribe({
+      next: () => {
+        const index = this.misPublicaciones.findIndex(p => p.id === publicacionId);
+        if (index !== -1 && this.currentUser?.id) {
+          this.misPublicaciones[index].likes.push(this.currentUser.id);
+          if (this.misPublicaciones[index].cantidadLikes !== undefined) {
+            this.misPublicaciones[index].cantidadLikes!++;
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error al dar like:', error);
+      }
+    });
+  }
+
+  handleUnlike(publicacionId: string) {
+    this.publicacionService.quitarLike(publicacionId).subscribe({
+      next: () => {
+        const index = this.misPublicaciones.findIndex(p => p.id === publicacionId);
+        if (index !== -1 && this.currentUser?.id) {
+          this.misPublicaciones[index].likes = this.misPublicaciones[index].likes.filter(
+            id => id !== this.currentUser!.id
+          );
+          if (this.misPublicaciones[index].cantidadLikes !== undefined) {
+            this.misPublicaciones[index].cantidadLikes!--;
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error al quitar like:', error);
+      }
+    });
+  }
+
+  handleDelete(publicacionId: string) {
+    this.publicacionAEliminar = publicacionId;
+    this.mostrarModalEliminar = true;
+  }
+
+  cancelarEliminacion() {
+    this.mostrarModalEliminar = false;
+    this.publicacionAEliminar = null;
+  }
+
+  confirmarEliminacion() {
+    if (!this.publicacionAEliminar) return;
+
+    this.publicacionService.eliminarPublicacion(this.publicacionAEliminar).subscribe({
+      next: () => {
+        this.misPublicaciones = this.misPublicaciones.filter(p => p.id !== this.publicacionAEliminar);
+        this.mostrarModalEliminar = false;
+        this.publicacionAEliminar = null;
+        this.successMessage = 'Publicación eliminada correctamente';
+        this.cdr.detectChanges();
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => {
+          this.successMessage = '';
+          this.cdr.detectChanges();
+        }, 3000);
+      },
+      error: (error) => {
+        console.error('Error al eliminar publicación:', error);
+        this.errorMessage = 'No se pudo eliminar la publicación';
+        this.mostrarModalEliminar = false;
+        this.publicacionAEliminar = null;
+        this.cdr.detectChanges();
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => {
+          this.errorMessage = '';
+          this.cdr.detectChanges();
+        }, 3000);
+      }
+    });
+  }
+
+  handleComment(event: { publicacionId: string, comentario: string }) {
+    this.publicacionService.agregarComentario(event.publicacionId, { comentario: event.comentario }).subscribe({
+      next: (publicacionActualizada) => {
+        const index = this.misPublicaciones.findIndex(p => p.id === event.publicacionId);
+        if (index !== -1) {
+          this.misPublicaciones[index] = publicacionActualizada;
+        }
+      },
+      error: (error) => {
+        console.error('Error al agregar comentario:', error);
+      }
+    });
   }
 }

@@ -48,8 +48,13 @@ let AuthService = class AuthService {
         };
         const user = await this.usersService.create(userData);
         const payload = { correo: user.correo, sub: user._id };
+        const userResponse = {
+            ...user.toObject(),
+            id: user._id.toString()
+        };
+        delete userResponse.contraseña;
         return {
-            user,
+            user: userResponse,
             access_token: this.jwtService.sign(payload),
         };
     }
@@ -64,8 +69,12 @@ let AuthService = class AuthService {
         }
         const payload = { correo: user.correo, sub: user._id };
         const { contraseña, ...userWithoutPassword } = user.toObject();
+        const userResponse = {
+            ...userWithoutPassword,
+            id: userWithoutPassword._id.toString()
+        };
         return {
-            user: userWithoutPassword,
+            user: userResponse,
             access_token: this.jwtService.sign(payload),
         };
     }

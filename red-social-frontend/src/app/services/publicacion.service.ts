@@ -19,8 +19,18 @@ export class PublicacionService {
     });
   }
 
-  getPublicaciones(): Observable<Publicacion[]> {
-    return this.http.get<Publicacion[]>(this.API_URL);
+  getPublicaciones(ordenarPor: 'fecha' | 'likes' = 'fecha', usuarioId?: string, offset: number = 0, limit: number = 10): Observable<Publicacion[]> {
+    let params: any = {
+      ordenarPor,
+      offset: offset.toString(),
+      limit: limit.toString()
+    };
+
+    if (usuarioId) {
+      params.usuarioId = usuarioId;
+    }
+
+    return this.http.get<Publicacion[]>(this.API_URL, { params });
   }
 
   crearPublicacion(publicacion: Omit<Publicacion, 'id' | 'fechaCreacion' | 'likes' | 'comentarios'> | FormData): Observable<Publicacion> {
@@ -34,6 +44,14 @@ export class PublicacionService {
 
   darLike(publicacionId: string): Observable<Publicacion> {
     return this.http.post<Publicacion>(`${this.API_URL}/${publicacionId}/like`, {}, { headers: this.getHeaders() });
+  }
+
+  quitarLike(publicacionId: string): Observable<Publicacion> {
+    return this.http.delete<Publicacion>(`${this.API_URL}/${publicacionId}/like`, { headers: this.getHeaders() });
+  }
+
+  eliminarPublicacion(publicacionId: string): Observable<void> {
+    return this.http.delete<void>(`${this.API_URL}/${publicacionId}`, { headers: this.getHeaders() });
   }
 
   agregarComentario(publicacionId: string, comentario: { comentario: string }): Observable<Publicacion> {

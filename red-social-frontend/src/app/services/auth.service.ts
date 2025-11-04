@@ -81,6 +81,11 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
+  updateCurrentUser(user: User): void {
+    this.setLocalStorageItem('currentUser', JSON.stringify(user));
+    this.currentUserSubject.next(user);
+  }
+
   isAuthenticated(): boolean {
     return !!this.getLocalStorageItem('access_token');
   }

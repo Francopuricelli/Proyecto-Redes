@@ -42,3 +42,24 @@ export class Publicacion {
 }
 
 export const PublicacionSchema = SchemaFactory.createForClass(Publicacion);
+
+// Agregar transformación para devolver id en lugar de _id
+PublicacionSchema.set('toJSON', {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc: any, ret: any) {
+    ret.id = ret._id.toString();
+    delete ret._id;
+    return ret;
+  },
+});
+
+PublicacionSchema.set('toObject', {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc: any, ret: any) {
+    ret.id = ret._id.toString();
+    delete ret._id;
+    return ret;
+  },
+});

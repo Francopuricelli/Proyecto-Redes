@@ -53,8 +53,16 @@ export class AuthService {
     const user = await this.usersService.create(userData);
     const payload = { correo: user.correo, sub: (user as any)._id };
     
+    // Agregar el campo id desde _id para el frontend
+    const userResponse: any = {
+      ...(user as any).toObject(),
+      id: (user as any)._id.toString()
+    };
+    // Remover contraseña
+    delete userResponse.contraseña;
+    
     return {
-      user,
+      user: userResponse,
       access_token: this.jwtService.sign(payload),
     };
   }
@@ -77,8 +85,14 @@ export class AuthService {
     // Remover la contraseña del objeto usuario para la respuesta
     const { contraseña, ...userWithoutPassword } = user.toObject();
     
+    // Agregar el campo id desde _id para el frontend
+    const userResponse: any = {
+      ...userWithoutPassword,
+      id: (userWithoutPassword as any)._id.toString()
+    };
+    
     return {
-      user: userWithoutPassword as User,
+      user: userResponse as User,
       access_token: this.jwtService.sign(payload),
     };
   }

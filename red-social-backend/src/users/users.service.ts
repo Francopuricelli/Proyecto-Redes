@@ -28,6 +28,10 @@ export class UsersService {
     return this.userModel.findById(id).select('-contraseña').exec();
   }
 
+  async findById(id: string): Promise<User | null> {
+    return this.userModel.findById(id).select('-contraseña').exec();
+  }
+
   async findByEmail(correo: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ correo }).exec();
   }

@@ -41,16 +41,11 @@
               <div class="col-md-8">
                 <div class="d-flex align-items-center">
                   <div class="avatar-large me-3">
-                    <img 
-                      *ngIf="currentUser.imagenPerfil" 
-                      [src]="currentUser.imagenPerfil" 
-                      [alt]="currentUser.nombre"
-                      class="rounded-circle img-fluid">
-                    <i *ngIf="!currentUser.imagenPerfil" class="fas fa-user-circle"></i>
+                    <i class="fas fa-user-circle fa-5x text-white"></i>
                   </div>
                   <div>
                     <h2 class="mb-1">{{ currentUser.nombre }} {{ currentUser.apellido }}</h2>
-                    <p class="mb-1">{{ currentUser.nombreUsuario }}</p>
+                    <p class="mb-1">@{{ currentUser.nombreUsuario }}</p>
                     <small class="opacity-75">
                       <i class="fas fa-calendar-alt me-1"></i>
                       Miembro desde {{ formatDate(currentUser.fechaRegistro || currentUser.fechaNacimiento) }}
@@ -121,6 +116,27 @@
                   <h5 class="mb-3 text-primary">
                     <i class="fas fa-user me-2"></i>Información Personal
                   </h5>
+
+                  <!-- Imagen de perfil -->
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">Imagen de Perfil</label>
+                    <div class="text-center mb-3">
+                      <div *ngIf="imagePreview || currentUser?.imagenPerfil" class="mb-2">
+                        <img 
+                          [src]="imagePreview || currentUser?.imagenPerfil" 
+                          class="rounded-circle" 
+                          style="width: 150px; height: 150px; object-fit: cover;"
+                          alt="Preview">
+                      </div>
+                      <i *ngIf="!imagePreview && !currentUser?.imagenPerfil" class="fas fa-user-circle fa-5x text-primary mb-2"></i>
+                      <input 
+                        type="file" 
+                        class="form-control" 
+                        accept="image/*"
+                        (change)="onImageSelected($event)">
+                      <small class="text-muted">Formato: JPG, PNG, GIF (Máximo 5MB)</small>
+                    </div>
+                  </div>
 
                   <div class="mb-3">
                     <label for="nombre" class="form-label fw-bold">Nombre</label>
@@ -233,6 +249,129 @@
             </form>
           </div>
         </div>
+
+        <!-- Sección de mis publicaciones -->
+        <div class="card border-0 shadow mt-4">
+          <div class="card-header bg-white border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">
+                <i class="fas fa-newspaper me-2 text-primary"></i>
+                Mis Publicaciones
+              </h5>
+              <!-- Controles de ordenamiento -->
+              <div class="btn-group btn-group-sm" role="group">
+                <button 
+                  type="button" 
+                  class="btn"
+                  [ngClass]="ordenarPor === 'fecha' ? 'btn-primary' : 'btn-outline-primary'"
+                  (click)="cambiarOrden('fecha')">
+                  <i class="fas fa-clock me-1"></i>Recientes
+                </button>
+                <button 
+                  type="button" 
+                  class="btn"
+                  [ngClass]="ordenarPor === 'likes' ? 'btn-primary' : 'btn-outline-primary'"
+                  (click)="cambiarOrden('likes')">
+                  <i class="fas fa-heart me-1"></i>Populares
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Loading inicial -->
+            <div *ngIf="cargandoPublicaciones && misPublicaciones.length === 0" class="text-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+              <p class="text-muted mt-2">Cargando publicaciones...</p>
+            </div>
+
+            <!-- Publicaciones -->
+            <div *ngIf="!cargandoPublicaciones || misPublicaciones.length > 0">
+              <!-- Contador de publicaciones -->
+              <div *ngIf="misPublicaciones.length > 0" class="mb-3">
+                <small class="text-muted">
+                  <i class="fas fa-list me-1"></i>
+                  {{ misPublicaciones.length }} {{ misPublicaciones.length === 1 ? 'publicación' : 'publicaciones' }}
+                </small>
+              </div>
+
+              <app-publicacion-card
+                *ngFor="let publicacion of misPublicaciones"
+                [publicacion]="publicacion"
+                (onLike)="handleLike($event)"
+                (onUnlike)="handleUnlike($event)"
+                (onDelete)="handleDelete($event)"
+                (onComment)="handleComment($event)">
+              </app-publicacion-card>
+
+              <!-- Botón cargar más -->
+              <div *ngIf="hayMasPublicaciones && misPublicaciones.length > 0" class="text-center mt-4">
+                <button 
+                  class="btn btn-outline-primary"
+                  (click)="cargarMasPublicaciones()"
+                  [disabled]="cargandoMas">
+                  <span *ngIf="cargandoMas" class="spinner-border spinner-border-sm me-2"></span>
+                  <i *ngIf="!cargandoMas" class="fas fa-arrow-down me-2"></i>
+                  {{ cargandoMas ? 'Cargando...' : 'Cargar más publicaciones' }}
+                </button>
+              </div>
+
+              <!-- Sin publicaciones -->
+              <div *ngIf="misPublicaciones.length === 0 && !cargandoPublicaciones" class="text-center py-5">
+                <i class="fas fa-pen-nib fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Aún no tienes publicaciones</h5>
+                <p class="text-muted mb-3">Empieza a compartir tus ideas con la comunidad</p>
+                <a routerLink="/publicaciones" class="btn btn-primary">
+                  <i class="fas fa-plus me-2"></i>Crear Publicación
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Botón flotante para cambiar tema -->
+<button class="theme-toggle" (click)="themeService.toggleDarkMode()" 
+        [title]="themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro'">
+  <i [class]="themeService.isDarkMode() ? 'fas fa-sun' : 'fas fa-moon'"></i>
+</button>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade show" *ngIf="mostrarModalEliminar" 
+     [style.display]="'block'" 
+     [style.background-color]="'rgba(0,0,0,0.5)'"
+     tabindex="-1" 
+     role="dialog">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-danger text-white border-0">
+        <h5 class="modal-title">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Confirmar Eliminación
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="cancelarEliminacion()"></button>
+      </div>
+      <div class="modal-body py-4">
+        <div class="text-center">
+          <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+          <p class="mb-0 fs-5">¿Estás seguro de que deseas eliminar esta publicación?</p>
+          <p class="text-muted mt-2">Esta acción no se puede deshacer.</p>
+        </div>
+      </div>
+      <div class="modal-footer border-0 bg-light">
+        <button type="button" class="btn btn-secondary" (click)="cancelarEliminacion()">
+          <i class="fas fa-times me-1"></i>
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-danger" (click)="confirmarEliminacion()">
+          <i class="fas fa-trash me-1"></i>
+          Eliminar
+        </button>
       </div>
     </div>
   </div>

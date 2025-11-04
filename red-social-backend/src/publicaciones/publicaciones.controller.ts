@@ -9,7 +9,8 @@ import {
   UseGuards, 
   Request,
   UseInterceptors,
-  UploadedFile
+  UploadedFile,
+  Query
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -17,23 +18,18 @@ import { PublicacionesService } from './publicaciones.service';
 import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
 import { ActualizarPublicacionDto } from './dto/actualizar-publicacion.dto';
 import { CrearComentarioDto } from './dto/crear-comentario.dto';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('publicaciones')
 export class PublicacionesController {
-  constructor(private readonly publicacionesService: PublicacionesService) {}
+  constructor(
+    private readonly publicacionesService: PublicacionesService,
+    private readonly cloudinaryService: CloudinaryService
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(FileInterceptor('imagen', {
-    storage: diskStorage({
-      destination: './uploads/publicaciones',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + extname(file.originalname));
-      },
-    }),
     fileFilter: (req, file, cb) => {
       if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
         return cb(new Error('Solo se permiten archivos de imagen'), false);
@@ -50,14 +46,28 @@ export class PublicacionesController {
     @UploadedFile() file: Express.Multer.File
   ) {
     if (file) {
-      crearPublicacionDto.imagen = file.filename;
+      const result = await this.cloudinaryService.uploadImage(file, 'publicaciones');
+      crearPublicacionDto.imagen = result.secure_url;
     }
     return await this.publicacionesService.crear(crearPublicacionDto, req.user.id);
   }
 
   @Get()
-  async obtenerTodas() {
-    return await this.publicacionesService.obtenerTodas();
+  async obtenerTodas(
+    @Query('ordenarPor') ordenarPor?: 'fecha' | 'likes',
+    @Query('usuarioId') usuarioId?: string,
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string
+  ) {
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    
+    return await this.publicacionesService.obtenerTodas(
+      ordenarPor || 'fecha',
+      usuarioId,
+      offsetNum,
+      limitNum
+    );
   }
 
   @Get(':id')
@@ -91,6 +101,12 @@ export class PublicacionesController {
   @Post(':id/like')
   async darLike(@Param('id') id: string, @Request() req) {
     return await this.publicacionesService.darLike(id, req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/like')
+  async quitarLike(@Param('id') id: string, @Request() req) {
+    return await this.publicacionesService.quitarLike(id, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)

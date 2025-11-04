@@ -1,17 +1,29 @@
+export interface Usuario {
+  id: string;
+  nombre: string;
+  apellido: string;
+  nombreUsuario: string;
+  email: string;
+  imagenPerfil?: string;
+}
+
 export interface Publicacion {
   id?: string;
   titulo: string;
-  contenido: string; // Cambiado de 'mensaje' a 'contenido' para coincidir con backend
+  contenido: string;
   imagen?: string;
-  autor: string; // ID del usuario
+  autor: Usuario; // Objeto usuario populado desde backend
   fechaCreacion: Date;
+  fecha: Date; // Alias para fechaCreacion
   likes: string[]; // Array de IDs de usuarios que dieron like
+  cantidadLikes?: number; // Conteo de likes desde backend
   comentarios: Comentario[];
+  eliminada?: boolean;
 }
 
 export interface Comentario {
   id?: string;
-  comentario: string; // Cambiado de 'mensaje' a 'comentario' para coincidir con backend
-  autor: string; // ID del usuario
-  fecha: Date; // Cambiado de 'fechaCreacion' a 'fecha' para coincidir con backend
+  comentario: string;
+  autor: Usuario; // Objeto usuario populado desde backend
+  fecha: Date;
 }

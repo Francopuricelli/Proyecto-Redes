@@ -7,11 +7,12 @@ export declare class PublicacionesService {
     private publicacionModel;
     constructor(publicacionModel: Model<PublicacionDocument>);
     crear(crearPublicacionDto: CrearPublicacionDto, autorId: string): Promise<Publicacion>;
-    obtenerTodas(): Promise<Publicacion[]>;
+    obtenerTodas(ordenarPor?: 'fecha' | 'likes', usuarioId?: string, offset?: number, limit?: number): Promise<Publicacion[]>;
     obtenerPorId(id: string): Promise<PublicacionDocument>;
     obtenerPorUsuario(usuarioId: string): Promise<Publicacion[]>;
     actualizar(id: string, actualizarPublicacionDto: ActualizarPublicacionDto, usuarioId: string): Promise<PublicacionDocument | null>;
     eliminar(id: string, usuarioId: string): Promise<void>;
     darLike(id: string, usuarioId: string): Promise<PublicacionDocument | null>;
+    quitarLike(id: string, usuarioId: string): Promise<PublicacionDocument | null>;
     agregarComentario(id: string, crearComentarioDto: CrearComentarioDto, usuarioId: string): Promise<PublicacionDocument | null>;
 }

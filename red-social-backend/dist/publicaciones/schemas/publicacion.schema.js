@@ -66,4 +66,22 @@ exports.Publicacion = Publicacion = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Publicacion);
 exports.PublicacionSchema = mongoose_1.SchemaFactory.createForClass(Publicacion);
+exports.PublicacionSchema.set('toJSON', {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        return ret;
+    },
+});
+exports.PublicacionSchema.set('toObject', {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        return ret;
+    },
+});
 //# sourceMappingURL=publicacion.schema.js.map

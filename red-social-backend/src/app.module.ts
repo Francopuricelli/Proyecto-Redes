@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PublicacionesModule } from './publicaciones/publicaciones.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PublicacionesModule } from './publicaciones/publicaciones.module';
     AuthModule,
     UsersModule,
     PublicacionesModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

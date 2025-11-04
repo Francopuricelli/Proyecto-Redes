@@ -20,21 +20,25 @@ const publicaciones_service_1 = require("./publicaciones.service");
 const crear_publicacion_dto_1 = require("./dto/crear-publicacion.dto");
 const actualizar_publicacion_dto_1 = require("./dto/actualizar-publicacion.dto");
 const crear_comentario_dto_1 = require("./dto/crear-comentario.dto");
-const multer_1 = require("multer");
-const path_1 = require("path");
+const cloudinary_service_1 = require("../cloudinary/cloudinary.service");
 let PublicacionesController = class PublicacionesController {
     publicacionesService;
-    constructor(publicacionesService) {
+    cloudinaryService;
+    constructor(publicacionesService, cloudinaryService) {
         this.publicacionesService = publicacionesService;
+        this.cloudinaryService = cloudinaryService;
     }
     async crear(crearPublicacionDto, req, file) {
         if (file) {
-            crearPublicacionDto.imagen = file.filename;
+            const result = await this.cloudinaryService.uploadImage(file, 'publicaciones');
+            crearPublicacionDto.imagen = result.secure_url;
         }
         return await this.publicacionesService.crear(crearPublicacionDto, req.user.id);
     }
-    async obtenerTodas() {
-        return await this.publicacionesService.obtenerTodas();
+    async obtenerTodas(ordenarPor, usuarioId, offset, limit) {
+        const offsetNum = offset ? parseInt(offset, 10) : 0;
+        const limitNum = limit ? parseInt(limit, 10) : 10;
+        return await this.publicacionesService.obtenerTodas(ordenarPor || 'fecha', usuarioId, offsetNum, limitNum);
     }
     async obtenerPorId(id) {
         return await this.publicacionesService.obtenerPorId(id);
@@ -52,6 +56,9 @@ let PublicacionesController = class PublicacionesController {
     async darLike(id, req) {
         return await this.publicacionesService.darLike(id, req.user.id);
     }
+    async quitarLike(id, req) {
+        return await this.publicacionesService.quitarLike(id, req.user.id);
+    }
     async agregarComentario(id, crearComentarioDto, req) {
         return await this.publicacionesService.agregarComentario(id, crearComentarioDto, req.user.id);
     }
@@ -61,13 +68,6 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('imagen', {
-        storage: (0, multer_1.diskStorage)({
-            destination: './uploads/publicaciones',
-            filename: (req, file, cb) => {
-                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-                cb(null, file.fieldname + '-' + uniqueSuffix + (0, path_1.extname)(file.originalname));
-            },
-        }),
         fileFilter: (req, file, cb) => {
             if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
                 return cb(new Error('Solo se permiten archivos de imagen'), false);
@@ -87,8 +87,12 @@ __decorate([
 ], PublicacionesController.prototype, "crear", null);
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('ordenarPor')),
+    __param(1, (0, common_1.Query)('usuarioId')),
+    __param(2, (0, common_1.Query)('offset')),
+    __param(3, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], PublicacionesController.prototype, "obtenerTodas", null);
 __decorate([
@@ -135,6 +139,15 @@ __decorate([
 ], PublicacionesController.prototype, "darLike", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Delete)(':id/like'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], PublicacionesController.prototype, "quitarLike", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(':id/comentarios'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -145,6 +158,7 @@ __decorate([
 ], PublicacionesController.prototype, "agregarComentario", null);
 exports.PublicacionesController = PublicacionesController = __decorate([
     (0, common_1.Controller)('publicaciones'),
-    __metadata("design:paramtypes", [publicaciones_service_1.PublicacionesService])
+    __metadata("design:paramtypes", [publicaciones_service_1.PublicacionesService,
+        cloudinary_service_1.CloudinaryService])
 ], PublicacionesController);
 //# sourceMappingURL=publicaciones.controller.js.map
