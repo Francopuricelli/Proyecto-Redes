@@ -84,6 +84,29 @@ let AuthService = class AuthService {
         const hasMinLength = password.length >= 8;
         return hasUppercase && hasNumber && hasMinLength;
     }
+    async getUserData(userId) {
+        const user = await this.usersService.findById(userId);
+        if (!user) {
+            throw new common_1.UnauthorizedException('Usuario no encontrado');
+        }
+        const userObj = typeof user.toObject === 'function' ? user.toObject() : user;
+        const userResponse = {
+            ...userObj,
+            id: userObj._id?.toString() || userId
+        };
+        return userResponse;
+    }
+    async refreshToken(userId) {
+        const user = await this.usersService.findById(userId);
+        if (!user) {
+            throw new common_1.UnauthorizedException('Usuario no encontrado');
+        }
+        const userObj = typeof user.toObject === 'function' ? user.toObject() : user;
+        const payload = { correo: userObj.correo, sub: userObj._id || userId };
+        return {
+            access_token: this.jwtService.sign(payload),
+        };
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([

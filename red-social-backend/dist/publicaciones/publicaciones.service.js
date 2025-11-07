@@ -92,19 +92,33 @@ let PublicacionesService = class PublicacionesService {
     async obtenerPorId(id) {
         const publicacion = await this.publicacionModel
             .findById(id)
-            .populate('autor', 'nombre email avatar')
-            .populate('comentarios.autor', 'nombre email avatar')
+            .populate('autor', 'nombre apellido email nombreUsuario imagenPerfil')
+            .populate('comentarios.autor', 'nombre apellido nombreUsuario imagenPerfil')
             .exec();
         if (!publicacion || publicacion.eliminada) {
             throw new common_1.NotFoundException('Publicación no encontrada');
         }
-        return publicacion;
+        const publicacionObj = publicacion.toJSON();
+        publicacionObj.cantidadLikes = publicacionObj.likes ? publicacionObj.likes.length : 0;
+        publicacionObj.fecha = publicacionObj.fechaCreacion || publicacionObj.createdAt;
+        if (publicacionObj.autor && publicacionObj.autor._id) {
+            publicacionObj.autor.id = publicacionObj.autor._id.toString();
+        }
+        if (publicacionObj.comentarios && publicacionObj.comentarios.length > 0) {
+            publicacionObj.comentarios = publicacionObj.comentarios.map((comentario) => {
+                if (comentario.autor && comentario.autor._id) {
+                    comentario.autor.id = comentario.autor._id.toString();
+                }
+                return comentario;
+            });
+        }
+        return publicacionObj;
     }
     async obtenerPorUsuario(usuarioId) {
         return await this.publicacionModel
             .find({ autor: new mongoose_2.Types.ObjectId(usuarioId), eliminada: false })
-            .populate('autor', 'nombre email avatar')
-            .populate('comentarios.autor', 'nombre email avatar')
+            .populate('autor', 'nombre apellido email nombreUsuario imagenPerfil')
+            .populate('comentarios.autor', 'nombre apellido nombreUsuario imagenPerfil')
             .sort({ fechaCreacion: -1 })
             .exec();
     }
@@ -118,8 +132,8 @@ let PublicacionesService = class PublicacionesService {
         }
         return await this.publicacionModel
             .findByIdAndUpdate(id, actualizarPublicacionDto, { new: true })
-            .populate('autor', 'nombre email avatar')
-            .populate('comentarios.autor', 'nombre email avatar')
+            .populate('autor', 'nombre apellido email nombreUsuario imagenPerfil')
+            .populate('comentarios.autor', 'nombre apellido nombreUsuario imagenPerfil')
             .exec();
     }
     async eliminar(id, usuarioId) {
@@ -181,14 +195,93 @@ let PublicacionesService = class PublicacionesService {
         publicacion.comentarios.push({
             comentario: crearComentarioDto.comentario,
             autor: usuarioId,
-            fecha: new Date()
+            fecha: new Date(),
+            modificado: false
         });
         await publicacion.save();
         return await this.publicacionModel
             .findById(id)
-            .populate('autor', 'nombre email avatar')
-            .populate('comentarios.autor', 'nombre email avatar')
+            .populate('autor', 'nombre apellido email nombreUsuario imagenPerfil')
+            .populate('comentarios.autor', 'nombre apellido nombreUsuario imagenPerfil')
             .exec();
+    }
+    async obtenerComentarios(publicacionId, offset, limit) {
+        const publicacion = await this.publicacionModel
+            .findById(publicacionId)
+            .populate('comentarios.autor', 'nombre apellido nombreUsuario imagenPerfil')
+            .exec();
+        if (!publicacion || publicacion.eliminada) {
+            throw new common_1.NotFoundException('Publicación no encontrada');
+        }
+        const offsetNum = offset ? parseInt(offset, 10) : 0;
+        const limitNum = limit ? parseInt(limit, 10) : 10;
+        const comentariosOrdenados = [...publicacion.comentarios].sort((a, b) => {
+            return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+        });
+        const comentariosPaginados = comentariosOrdenados.slice(offsetNum, offsetNum + limitNum);
+        const comentariosFormateados = comentariosPaginados.map((comentario) => {
+            const comentarioObj = {
+                id: comentario._id.toString(),
+                comentario: comentario.comentario,
+                fecha: comentario.fecha,
+                modificado: comentario.modificado || false,
+                autor: comentario.autor ? {
+                    id: comentario.autor._id.toString(),
+                    nombre: comentario.autor.nombre,
+                    apellido: comentario.autor.apellido,
+                    nombreUsuario: comentario.autor.nombreUsuario,
+                    imagenPerfil: comentario.autor.imagenPerfil
+                } : null
+            };
+            return comentarioObj;
+        });
+        return {
+            comentarios: comentariosFormateados,
+            total: publicacion.comentarios.length,
+            offset: offsetNum,
+            limit: limitNum
+        };
+    }
+    async editarComentario(publicacionId, comentarioId, nuevoTexto, usuarioId) {
+        const publicacion = await this.publicacionModel.findById(publicacionId);
+        if (!publicacion || publicacion.eliminada) {
+            throw new common_1.NotFoundException('Publicación no encontrada');
+        }
+        const comentario = publicacion.comentarios.find((c) => c._id.toString() === comentarioId);
+        if (!comentario) {
+            throw new common_1.NotFoundException('Comentario no encontrado');
+        }
+        if (comentario.autor.toString() !== usuarioId) {
+            throw new common_1.ForbiddenException('No tienes permisos para editar este comentario');
+        }
+        const comentarioIndex = publicacion.comentarios.findIndex((c) => c._id.toString() === comentarioId);
+        if (comentarioIndex !== -1) {
+            publicacion.comentarios[comentarioIndex].comentario = nuevoTexto;
+            publicacion.comentarios[comentarioIndex].modificado = true;
+        }
+        await publicacion.save();
+        const publicacionActualizada = await this.publicacionModel
+            .findById(publicacionId)
+            .populate('comentarios.autor', 'nombre apellido nombreUsuario imagenPerfil')
+            .exec();
+        const comentarioActualizadoPopulado = publicacionActualizada?.comentarios.find((c) => c._id.toString() === comentarioId);
+        if (comentarioActualizadoPopulado) {
+            const autor = comentarioActualizadoPopulado.autor;
+            return {
+                id: comentarioActualizadoPopulado._id.toString(),
+                comentario: comentarioActualizadoPopulado.comentario,
+                fecha: comentarioActualizadoPopulado.fecha,
+                modificado: comentarioActualizadoPopulado.modificado,
+                autor: autor ? {
+                    id: autor._id.toString(),
+                    nombre: autor.nombre,
+                    apellido: autor.apellido,
+                    nombreUsuario: autor.nombreUsuario,
+                    imagenPerfil: autor.imagenPerfil
+                } : null
+            };
+        }
+        return null;
     }
 };
 exports.PublicacionesService = PublicacionesService;

@@ -104,4 +104,37 @@ export class AuthService {
     
     return hasUppercase && hasNumber && hasMinLength;
   }
+
+  async getUserData(userId: string): Promise<any> {
+    const user = await this.usersService.findById(userId);
+    
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // findById ya excluye la contraseña y devuelve el objeto limpio
+    // Convertir a objeto plano y agregar el campo id desde _id para el frontend
+    const userObj = typeof (user as any).toObject === 'function' ? (user as any).toObject() : user;
+    const userResponse: any = {
+      ...userObj,
+      id: userObj._id?.toString() || userId
+    };
+    
+    return userResponse;
+  }
+
+  async refreshToken(userId: string): Promise<{ access_token: string }> {
+    const user = await this.usersService.findById(userId);
+    
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    const userObj = typeof (user as any).toObject === 'function' ? (user as any).toObject() : user;
+    const payload = { correo: userObj.correo, sub: userObj._id || userId };
+    
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
 }

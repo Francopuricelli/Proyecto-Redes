@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseInterceptors, UploadedFile, ValidationPipe, HttpStatus, HttpCode, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, UseInterceptors, UploadedFile, ValidationPipe, HttpStatus, HttpCode, BadRequestException, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -6,6 +6,7 @@ import { LoginDto } from './dto/login.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -70,5 +71,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body(ValidationPipe) loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('autorizar')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async autorizar(@Request() req) {
+    // Si llega aquí, el token es válido (JwtAuthGuard lo validó)
+    return this.authService.getUserData(req.user.id);
+  }
+
+  @Post('refrescar')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async refrescar(@Request() req) {
+    // Si llega aquí, el token es válido (JwtAuthGuard lo validó)
+    return this.authService.refreshToken(req.user.id);
   }
 }

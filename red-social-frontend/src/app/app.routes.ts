@@ -3,6 +3,7 @@ import { LoginComponent } from './components/login/login.component';
 import { RegistroComponent } from './components/registro/registro.component';
 import { PublicacionesComponent } from './components/publicaciones/publicaciones.component';
 import { MiPerfilComponent } from './components/perfil/mi-perfil.component';
+import { DetallePublicacionComponent } from './components/detalle-publicacion/detalle-publicacion.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -10,6 +11,7 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'registro', component: RegistroComponent },
   { path: 'publicaciones', component: PublicacionesComponent, canActivate: [AuthGuard] },
+  { path: 'publicaciones/:id', component: DetallePublicacionComponent, canActivate: [AuthGuard] },
   { path: 'perfil', component: MiPerfilComponent, canActivate: [AuthGuard] },
   { path: '**', redirectTo: '/login' }
 ];

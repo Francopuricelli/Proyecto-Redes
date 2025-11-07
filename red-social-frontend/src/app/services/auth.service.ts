@@ -94,4 +94,26 @@ export class AuthService {
   getToken(): string | null {
     return this.getLocalStorageItem('access_token');
   }
+
+  autorizar(): Observable<User> {
+    return this.http.post<User>(`${this.API_URL}/autorizar`, {}, {
+      headers: {
+        'Authorization': `Bearer ${this.getToken()}`
+      }
+    });
+  }
+
+  refrescarToken(): Observable<{ access_token: string }> {
+    return this.http.post<{ access_token: string }>(`${this.API_URL}/refrescar`, {}, {
+      headers: {
+        'Authorization': `Bearer ${this.getToken()}`
+      }
+    }).pipe(
+      tap(response => {
+        if (response.access_token) {
+          this.setLocalStorageItem('access_token', response.access_token);
+        }
+      })
+    );
+  }
 }

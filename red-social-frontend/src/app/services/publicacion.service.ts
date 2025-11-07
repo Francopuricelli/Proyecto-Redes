@@ -58,4 +58,20 @@ export class PublicacionService {
   agregarComentario(publicacionId: string, comentario: { comentario: string }): Observable<Publicacion> {
     return this.http.post<Publicacion>(`${this.API_URL}/${publicacionId}/comentarios`, comentario, { headers: this.getHeaders() });
   }
+
+  obtenerPorId(publicacionId: string): Observable<Publicacion> {
+    return this.http.get<Publicacion>(`${this.API_URL}/${publicacionId}`);
+  }
+
+  obtenerComentarios(publicacionId: string, offset: number = 0, limit: number = 10): Observable<any> {
+    const params = {
+      offset: offset.toString(),
+      limit: limit.toString()
+    };
+    return this.http.get<any>(`${this.API_URL}/${publicacionId}/comentarios`, { params });
+  }
+
+  editarComentario(publicacionId: string, comentarioId: string, datos: { texto: string }): Observable<Comentario> {
+    return this.http.put<Comentario>(`${this.API_URL}/${publicacionId}/comentarios/${comentarioId}`, datos, { headers: this.getHeaders() });
+  }
 }

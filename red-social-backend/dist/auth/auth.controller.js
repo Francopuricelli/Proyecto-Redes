@@ -21,6 +21,7 @@ const login_dto_1 = require("./dto/login.dto");
 const cloudinary_service_1 = require("../cloudinary/cloudinary.service");
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
+const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 let AuthController = class AuthController {
     authService;
     cloudinaryService;
@@ -56,6 +57,12 @@ let AuthController = class AuthController {
     async login(loginDto) {
         return this.authService.login(loginDto);
     }
+    async autorizar(req) {
+        return this.authService.getUserData(req.user.id);
+    }
+    async refrescar(req) {
+        return this.authService.refreshToken(req.user.id);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -85,6 +92,24 @@ __decorate([
     __metadata("design:paramtypes", [login_dto_1.LoginDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('autorizar'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "autorizar", null);
+__decorate([
+    (0, common_1.Post)('refrescar'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "refrescar", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService,

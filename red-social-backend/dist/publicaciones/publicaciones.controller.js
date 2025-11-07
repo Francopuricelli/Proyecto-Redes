@@ -52,6 +52,12 @@ let PublicacionesController = class PublicacionesController {
     async agregarComentario(id, crearComentarioDto, req) {
         return await this.publicacionesService.agregarComentario(id, crearComentarioDto, req.user.id);
     }
+    async obtenerComentarios(id, offset, limit) {
+        return await this.publicacionesService.obtenerComentarios(id, offset, limit);
+    }
+    async editarComentario(publicacionId, comentarioId, editarComentarioDto, req) {
+        return await this.publicacionesService.editarComentario(publicacionId, comentarioId, editarComentarioDto.texto, req.user.id);
+    }
 };
 exports.PublicacionesController = PublicacionesController;
 __decorate([
@@ -146,6 +152,26 @@ __decorate([
     __metadata("design:paramtypes", [String, crear_comentario_dto_1.CrearComentarioDto, Object]),
     __metadata("design:returntype", Promise)
 ], PublicacionesController.prototype, "agregarComentario", null);
+__decorate([
+    (0, common_1.Get)(':id/comentarios'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('offset')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], PublicacionesController.prototype, "obtenerComentarios", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Put)(':id/comentarios/:comentarioId'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Param)('comentarioId')),
+    __param(2, (0, common_1.Body)()),
+    __param(3, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], PublicacionesController.prototype, "editarComentario", null);
 exports.PublicacionesController = PublicacionesController = __decorate([
     (0, common_1.Controller)('publicaciones'),
     __metadata("design:paramtypes", [publicaciones_service_1.PublicacionesService])

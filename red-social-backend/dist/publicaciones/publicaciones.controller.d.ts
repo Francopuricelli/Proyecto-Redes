@@ -7,7 +7,7 @@ export declare class PublicacionesController {
     constructor(publicacionesService: PublicacionesService);
     crear(crearPublicacionDto: CrearPublicacionDto, req: any, file?: Express.Multer.File): Promise<import("./schemas/publicacion.schema").Publicacion>;
     obtenerTodas(ordenarPor?: 'fecha' | 'likes', usuarioId?: string, offset?: string, limit?: string): Promise<import("./schemas/publicacion.schema").Publicacion[]>;
-    obtenerPorId(id: string): Promise<import("./schemas/publicacion.schema").PublicacionDocument>;
+    obtenerPorId(id: string): Promise<any>;
     obtenerPorUsuario(usuarioId: string): Promise<import("./schemas/publicacion.schema").Publicacion[]>;
     actualizar(id: string, actualizarPublicacionDto: ActualizarPublicacionDto, req: any): Promise<import("./schemas/publicacion.schema").PublicacionDocument | null>;
     eliminar(id: string, req: any): Promise<{
@@ -16,4 +16,8 @@ export declare class PublicacionesController {
     darLike(id: string, req: any): Promise<import("./schemas/publicacion.schema").PublicacionDocument | null>;
     quitarLike(id: string, req: any): Promise<import("./schemas/publicacion.schema").PublicacionDocument | null>;
     agregarComentario(id: string, crearComentarioDto: CrearComentarioDto, req: any): Promise<import("./schemas/publicacion.schema").PublicacionDocument | null>;
+    obtenerComentarios(id: string, offset?: string, limit?: string): Promise<any>;
+    editarComentario(publicacionId: string, comentarioId: string, editarComentarioDto: {
+        texto: string;
+    }, req: any): Promise<any>;
 }

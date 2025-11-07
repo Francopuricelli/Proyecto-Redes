@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { PublicacionService } from '../../services/publicacion.service';
 import { AuthService } from '../../services/auth.service';
 import { ImageService } from '../../services/image.service';
@@ -47,7 +47,8 @@ export class PublicacionesComponent implements OnInit {
     public authService: AuthService,
     private imageService: ImageService,
     private cdr: ChangeDetectorRef,
-    public themeService: ThemeService
+    public themeService: ThemeService,
+    private router: Router
   ) {
     this.nuevaPublicacionForm = this.fb.group({
       titulo: ['', [Validators.required, Validators.minLength(1)]],
@@ -240,6 +241,10 @@ export class PublicacionesComponent implements OnInit {
   }
 
   // Manejadores de eventos del publicacion-card
+  verDetallePublicacion(publicacionId: string) {
+    this.router.navigate(['/publicaciones', publicacionId]);
+  }
+
   handleLike(publicacionId: string) {
     this.publicacionService.darLike(publicacionId).subscribe({
       next: () => {

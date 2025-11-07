@@ -13,4 +13,8 @@ export declare class AuthController {
         user: import("../users/schemas/user.schema").User;
         access_token: string;
     }>;
+    autorizar(req: any): Promise<any>;
+    refrescar(req: any): Promise<{
+        access_token: string;
+    }>;
 }

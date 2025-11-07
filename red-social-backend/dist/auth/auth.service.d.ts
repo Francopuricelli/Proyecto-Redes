@@ -16,4 +16,8 @@ export declare class AuthService {
         access_token: string;
     }>;
     private validatePassword;
+    getUserData(userId: string): Promise<any>;
+    refreshToken(userId: string): Promise<{
+        access_token: string;
+    }>;
 }

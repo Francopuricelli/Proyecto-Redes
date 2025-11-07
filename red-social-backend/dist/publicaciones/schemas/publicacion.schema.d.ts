@@ -10,6 +10,7 @@ export declare class Publicacion {
         comentario: string;
         autor: MongooseSchema.Types.ObjectId;
         fecha: Date;
+        modificado: boolean;
     }[];
     fechaCreacion: Date;
     eliminada: boolean;

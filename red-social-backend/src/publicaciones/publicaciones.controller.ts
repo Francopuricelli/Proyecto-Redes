@@ -6,6 +6,7 @@ import {
   Patch, 
   Param, 
   Delete, 
+  Put,
   UseGuards, 
   Request,
   UseInterceptors,
@@ -102,5 +103,30 @@ export class PublicacionesController {
     @Request() req
   ) {
     return await this.publicacionesService.agregarComentario(id, crearComentarioDto, req.user.id);
+  }
+
+  @Get(':id/comentarios')
+  async obtenerComentarios(
+    @Param('id') id: string,
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string
+  ) {
+    return await this.publicacionesService.obtenerComentarios(id, offset, limit);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/comentarios/:comentarioId')
+  async editarComentario(
+    @Param('id') publicacionId: string,
+    @Param('comentarioId') comentarioId: string,
+    @Body() editarComentarioDto: { texto: string },
+    @Request() req
+  ) {
+    return await this.publicacionesService.editarComentario(
+      publicacionId, 
+      comentarioId, 
+      editarComentarioDto.texto, 
+      req.user.id
+    );
   }
 }

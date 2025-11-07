@@ -48,7 +48,8 @@ __decorate([
         type: [{
                 comentario: { type: String, required: true },
                 autor: { type: mongoose_2.Schema.Types.ObjectId, ref: 'User', required: true },
-                fecha: { type: Date, default: Date.now }
+                fecha: { type: Date, default: Date.now },
+                modificado: { type: Boolean, default: false }
             }],
         default: []
     }),
