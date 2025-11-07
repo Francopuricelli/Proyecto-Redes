@@ -6,6 +6,7 @@ export declare class UsersService {
     constructor(userModel: Model<UserDocument>);
     create(registerDto: RegisterDto): Promise<User>;
     findOne(id: string): Promise<User | null>;
+    findById(id: string): Promise<User | null>;
     findByEmail(correo: string): Promise<UserDocument | null>;
     findByUsername(nombreUsuario: string): Promise<UserDocument | null>;
     findByEmailOrUsername(usuario: string): Promise<UserDocument | null>;

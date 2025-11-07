@@ -69,6 +69,9 @@ let UsersService = class UsersService {
     async findOne(id) {
         return this.userModel.findById(id).select('-contraseña').exec();
     }
+    async findById(id) {
+        return this.userModel.findById(id).select('-contraseña').exec();
+    }
     async findByEmail(correo) {
         return this.userModel.findOne({ correo }).exec();
     }

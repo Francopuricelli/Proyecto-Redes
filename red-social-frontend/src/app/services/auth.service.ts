@@ -3,12 +3,13 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { User, LoginRequest, RegisterRequest } from '../models/user.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_URL = 'http://localhost:3000/auth';
+  private readonly API_URL = `${environment.apiUrl}/auth`;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -16,7 +17,7 @@ export class AuthService {
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
-    // Solo acceder a localStorage si estamos en el navegador
+   
     if (isPlatformBrowser(this.platformId)) {
       const savedUser = localStorage.getItem('currentUser');
       if (savedUser) {
@@ -40,7 +41,7 @@ export class AuthService {
     );
   }
 
-  register(registerData: RegisterRequest): Observable<any> {
+  register(registerData: RegisterRequest | FormData): Observable<any> {
     return this.http.post<any>(`${this.API_URL}/registro`, registerData).pipe(
       tap(response => {
         if (response.user && response.access_token) {

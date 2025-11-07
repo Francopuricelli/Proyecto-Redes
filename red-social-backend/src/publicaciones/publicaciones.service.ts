@@ -12,7 +12,27 @@ export class PublicacionesService {
     @InjectModel(Publicacion.name) private publicacionModel: Model<PublicacionDocument>
   ) {}
 
-  async crear(crearPublicacionDto: CrearPublicacionDto, autorId: string): Promise<Publicacion> {
+  async crear(crearPublicacionDto: CrearPublicacionDto, autorId: string, file?: Express.Multer.File): Promise<Publicacion> {
+    // Subir imagen a Cloudinary si se proporciona
+    if (file) {
+      const cloudinary = require('cloudinary').v2;
+      const streamifier = require('streamifier');
+      
+      const uploadPromise = new Promise<any>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'publicaciones' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        streamifier.createReadStream(file.buffer).pipe(stream);
+      });
+      
+      const result = await uploadPromise;
+      crearPublicacionDto.imagen = result.secure_url;
+    }
+    
     const publicacion = new this.publicacionModel({
       ...crearPublicacionDto,
       autor: new Types.ObjectId(autorId)
@@ -38,12 +58,17 @@ export class PublicacionesService {
   }
 
   async obtenerTodas(
-    ordenarPor: 'fecha' | 'likes' = 'fecha',
+    ordenarPor?: 'fecha' | 'likes',
     usuarioId?: string,
-    offset: number = 0,
-    limit: number = 10
+    offset?: string,
+    limit?: string
   ): Promise<Publicacion[]> {
     const filtro: any = { eliminada: false };
+    
+    // Parsear parámetros
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    const ordenamiento = ordenarPor || 'fecha';
     
     // Filtrar por usuario si se proporciona
     if (usuarioId) {
@@ -51,7 +76,7 @@ export class PublicacionesService {
     }
 
     // Determinar el ordenamiento
-    const ordenamiento: any = ordenarPor === 'likes' 
+    const sort: any = ordenamiento === 'likes' 
       ? { 'likes': -1, 'fechaCreacion': -1 }  // Ordenar por cantidad de likes, luego por fecha
       : { fechaCreacion: -1 }; // Ordenar solo por fecha
 
@@ -59,9 +84,9 @@ export class PublicacionesService {
       .find(filtro)
       .populate('autor', 'nombre apellido email nombreUsuario imagenPerfil')
       .populate('comentarios.autor', 'nombre apellido nombreUsuario')
-      .sort(ordenamiento)
-      .skip(offset)
-      .limit(limit)
+      .sort(sort)
+      .skip(offsetNum)
+      .limit(limitNum)
       .exec();
 
     // Convertir a JSON - la imagen ya viene con URL completa de Cloudinary
@@ -132,7 +157,7 @@ export class PublicacionesService {
       .exec();
   }
 
-  async eliminar(id: string, usuarioId: string): Promise<void> {
+  async eliminar(id: string, usuarioId: string): Promise<{ mensaje: string }> {
     const publicacion = await this.publicacionModel.findById(id);
     
     if (!publicacion || publicacion.eliminada) {
@@ -144,6 +169,8 @@ export class PublicacionesService {
     }
 
     await this.publicacionModel.findByIdAndUpdate(id, { eliminada: true });
+    
+    return { mensaje: 'Publicación eliminada correctamente' };
   }
 
   async darLike(id: string, usuarioId: string): Promise<PublicacionDocument | null> {

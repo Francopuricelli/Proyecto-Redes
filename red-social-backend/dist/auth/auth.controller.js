@@ -15,18 +15,42 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
-const multer_1 = require("multer");
-const path_1 = require("path");
 const auth_service_1 = require("./auth.service");
 const register_dto_1 = require("./dto/register.dto");
 const login_dto_1 = require("./dto/login.dto");
+const cloudinary_service_1 = require("../cloudinary/cloudinary.service");
+const class_transformer_1 = require("class-transformer");
+const class_validator_1 = require("class-validator");
 let AuthController = class AuthController {
     authService;
-    constructor(authService) {
+    cloudinaryService;
+    constructor(authService, cloudinaryService) {
         this.authService = authService;
+        this.cloudinaryService = cloudinaryService;
     }
-    async register(registerDto, file) {
-        const imagenPerfil = file ? `/uploads/perfiles/${file.filename}` : undefined;
+    async register(body, file) {
+        const passwordKey = Object.keys(body).find(key => key === 'contraseña' || key.includes('contrase'));
+        const password = passwordKey ? body[passwordKey] : undefined;
+        const registerDto = {
+            nombre: body.nombre,
+            apellido: body.apellido,
+            correo: body.correo,
+            nombreUsuario: body.nombreUsuario,
+            contraseña: password,
+            fechaNacimiento: body.fechaNacimiento,
+            descripcionBreve: body.descripcionBreve,
+        };
+        const dtoInstance = (0, class_transformer_1.plainToInstance)(register_dto_1.RegisterDto, registerDto);
+        const errors = await (0, class_validator_1.validate)(dtoInstance);
+        if (errors.length > 0) {
+            const messages = errors.map(error => Object.values(error.constraints || {})).flat();
+            throw new common_1.BadRequestException(messages);
+        }
+        let imagenPerfil;
+        if (file) {
+            const result = await this.cloudinaryService.uploadImage(file, 'perfiles');
+            imagenPerfil = result.secure_url;
+        }
         return this.authService.register(registerDto, imagenPerfil);
     }
     async login(loginDto) {
@@ -37,13 +61,6 @@ exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)('registro'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('imagenPerfil', {
-        storage: (0, multer_1.diskStorage)({
-            destination: './uploads/perfiles',
-            filename: (req, file, cb) => {
-                const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
-                cb(null, `${randomName}${(0, path_1.extname)(file.originalname)}`);
-            },
-        }),
         fileFilter: (req, file, cb) => {
             if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
                 return cb(new Error('Solo se permiten archivos JPG, JPEG y PNG'), false);
@@ -54,10 +71,10 @@ __decorate([
             fileSize: 5 * 1024 * 1024,
         },
     })),
-    __param(0, (0, common_1.Body)(common_1.ValidationPipe)),
+    __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [register_dto_1.RegisterDto, Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
 __decorate([
@@ -70,6 +87,7 @@ __decorate([
 ], AuthController.prototype, "login", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        cloudinary_service_1.CloudinaryService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

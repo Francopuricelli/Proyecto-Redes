@@ -20,25 +20,16 @@ const publicaciones_service_1 = require("./publicaciones.service");
 const crear_publicacion_dto_1 = require("./dto/crear-publicacion.dto");
 const actualizar_publicacion_dto_1 = require("./dto/actualizar-publicacion.dto");
 const crear_comentario_dto_1 = require("./dto/crear-comentario.dto");
-const cloudinary_service_1 = require("../cloudinary/cloudinary.service");
 let PublicacionesController = class PublicacionesController {
     publicacionesService;
-    cloudinaryService;
-    constructor(publicacionesService, cloudinaryService) {
+    constructor(publicacionesService) {
         this.publicacionesService = publicacionesService;
-        this.cloudinaryService = cloudinaryService;
     }
     async crear(crearPublicacionDto, req, file) {
-        if (file) {
-            const result = await this.cloudinaryService.uploadImage(file, 'publicaciones');
-            crearPublicacionDto.imagen = result.secure_url;
-        }
-        return await this.publicacionesService.crear(crearPublicacionDto, req.user.id);
+        return await this.publicacionesService.crear(crearPublicacionDto, req.user.id, file);
     }
     async obtenerTodas(ordenarPor, usuarioId, offset, limit) {
-        const offsetNum = offset ? parseInt(offset, 10) : 0;
-        const limitNum = limit ? parseInt(limit, 10) : 10;
-        return await this.publicacionesService.obtenerTodas(ordenarPor || 'fecha', usuarioId, offsetNum, limitNum);
+        return await this.publicacionesService.obtenerTodas(ordenarPor, usuarioId, offset, limit);
     }
     async obtenerPorId(id) {
         return await this.publicacionesService.obtenerPorId(id);
@@ -50,8 +41,7 @@ let PublicacionesController = class PublicacionesController {
         return await this.publicacionesService.actualizar(id, actualizarPublicacionDto, req.user.id);
     }
     async eliminar(id, req) {
-        await this.publicacionesService.eliminar(id, req.user.id);
-        return { mensaje: 'Publicación eliminada correctamente' };
+        return await this.publicacionesService.eliminar(id, req.user.id);
     }
     async darLike(id, req) {
         return await this.publicacionesService.darLike(id, req.user.id);
@@ -158,7 +148,6 @@ __decorate([
 ], PublicacionesController.prototype, "agregarComentario", null);
 exports.PublicacionesController = PublicacionesController = __decorate([
     (0, common_1.Controller)('publicaciones'),
-    __metadata("design:paramtypes", [publicaciones_service_1.PublicacionesService,
-        cloudinary_service_1.CloudinaryService])
+    __metadata("design:paramtypes", [publicaciones_service_1.PublicacionesService])
 ], PublicacionesController);
 //# sourceMappingURL=publicaciones.controller.js.map

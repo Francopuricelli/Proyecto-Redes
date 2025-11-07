@@ -22,7 +22,22 @@ let PublicacionesService = class PublicacionesService {
     constructor(publicacionModel) {
         this.publicacionModel = publicacionModel;
     }
-    async crear(crearPublicacionDto, autorId) {
+    async crear(crearPublicacionDto, autorId, file) {
+        if (file) {
+            const cloudinary = require('cloudinary').v2;
+            const streamifier = require('streamifier');
+            const uploadPromise = new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream({ folder: 'publicaciones' }, (error, result) => {
+                    if (error)
+                        reject(error);
+                    else
+                        resolve(result);
+                });
+                streamifier.createReadStream(file.buffer).pipe(stream);
+            });
+            const result = await uploadPromise;
+            crearPublicacionDto.imagen = result.secure_url;
+        }
         const publicacion = new this.publicacionModel({
             ...crearPublicacionDto,
             autor: new mongoose_2.Types.ObjectId(autorId)
@@ -37,21 +52,24 @@ let PublicacionesService = class PublicacionesService {
         }
         return publicacionObj;
     }
-    async obtenerTodas(ordenarPor = 'fecha', usuarioId, offset = 0, limit = 10) {
+    async obtenerTodas(ordenarPor, usuarioId, offset, limit) {
         const filtro = { eliminada: false };
+        const offsetNum = offset ? parseInt(offset, 10) : 0;
+        const limitNum = limit ? parseInt(limit, 10) : 10;
+        const ordenamiento = ordenarPor || 'fecha';
         if (usuarioId) {
             filtro.autor = new mongoose_2.Types.ObjectId(usuarioId);
         }
-        const ordenamiento = ordenarPor === 'likes'
+        const sort = ordenamiento === 'likes'
             ? { 'likes': -1, 'fechaCreacion': -1 }
             : { fechaCreacion: -1 };
         const publicaciones = await this.publicacionModel
             .find(filtro)
             .populate('autor', 'nombre apellido email nombreUsuario imagenPerfil')
             .populate('comentarios.autor', 'nombre apellido nombreUsuario')
-            .sort(ordenamiento)
-            .skip(offset)
-            .limit(limit)
+            .sort(sort)
+            .skip(offsetNum)
+            .limit(limitNum)
             .exec();
         return publicaciones.map(pub => {
             const publicacionObj = pub.toJSON();
@@ -113,6 +131,7 @@ let PublicacionesService = class PublicacionesService {
             throw new common_1.ForbiddenException('No tienes permisos para eliminar esta publicación');
         }
         await this.publicacionModel.findByIdAndUpdate(id, { eliminada: true });
+        return { mensaje: 'Publicación eliminada correctamente' };
     }
     async darLike(id, usuarioId) {
         const publicacion = await this.publicacionModel.findById(id);

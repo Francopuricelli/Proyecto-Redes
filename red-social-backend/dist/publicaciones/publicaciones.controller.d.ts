@@ -2,12 +2,10 @@ import { PublicacionesService } from './publicaciones.service';
 import { CrearPublicacionDto } from './dto/crear-publicacion.dto';
 import { ActualizarPublicacionDto } from './dto/actualizar-publicacion.dto';
 import { CrearComentarioDto } from './dto/crear-comentario.dto';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
 export declare class PublicacionesController {
     private readonly publicacionesService;
-    private readonly cloudinaryService;
-    constructor(publicacionesService: PublicacionesService, cloudinaryService: CloudinaryService);
-    crear(crearPublicacionDto: CrearPublicacionDto, req: any, file: Express.Multer.File): Promise<import("./schemas/publicacion.schema").Publicacion>;
+    constructor(publicacionesService: PublicacionesService);
+    crear(crearPublicacionDto: CrearPublicacionDto, req: any, file?: Express.Multer.File): Promise<import("./schemas/publicacion.schema").Publicacion>;
     obtenerTodas(ordenarPor?: 'fecha' | 'likes', usuarioId?: string, offset?: string, limit?: string): Promise<import("./schemas/publicacion.schema").Publicacion[]>;
     obtenerPorId(id: string): Promise<import("./schemas/publicacion.schema").PublicacionDocument>;
     obtenerPorUsuario(usuarioId: string): Promise<import("./schemas/publicacion.schema").Publicacion[]>;

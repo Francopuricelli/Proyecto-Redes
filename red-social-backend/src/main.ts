@@ -8,7 +8,10 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
   // Configurar validación global
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true, // Transforma los datos automáticamente
+    whitelist: true, // Elimina propiedades que no están en el DTO
+  }));
   
   // Servir archivos estáticos
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
@@ -17,7 +20,20 @@ async function bootstrap() {
   
   // Configurar CORS para permitir conexiones desde el frontend
   app.enableCors({
-    origin: 'http://localhost:4200',
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'http://localhost:4200',
+        'https://proyecto-redes-frontend.vercel.app'
+      ];
+      
+      // Permitir cualquier URL de Vercel (previews y producción)
+      if (!origin || allowedOrigins.includes(origin) || origin.includes('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS'],
     credentials: true,
   });
 
