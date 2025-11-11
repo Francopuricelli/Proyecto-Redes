@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersModule = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
+const jwt_1 = require("@nestjs/jwt");
 const users_service_1 = require("./users.service");
 const users_controller_1 = require("./users.controller");
 const user_schema_1 = require("./schemas/user.schema");
@@ -21,6 +22,10 @@ exports.UsersModule = UsersModule = __decorate([
         imports: [
             mongoose_1.MongooseModule.forFeature([{ name: user_schema_1.User.name, schema: user_schema_1.UserSchema }]),
             cloudinary_module_1.CloudinaryModule,
+            jwt_1.JwtModule.register({
+                secret: process.env.JWT_SECRET || 'secretKey',
+                signOptions: { expiresIn: '15m' },
+            }),
         ],
         controllers: [users_controller_1.UsersController],
         providers: [users_service_1.UsersService],

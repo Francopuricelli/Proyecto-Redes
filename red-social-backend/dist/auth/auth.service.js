@@ -47,9 +47,14 @@ let AuthService = class AuthService {
             imagenPerfil: imagenPerfil || undefined,
         };
         const user = await this.usersService.create(userData);
-        const payload = { correo: user.correo, sub: user._id };
+        const userObj = user.toObject();
+        const payload = {
+            correo: user.correo,
+            sub: user._id,
+            perfil: userObj.perfil
+        };
         const userResponse = {
-            ...user.toObject(),
+            ...userObj,
             id: user._id.toString()
         };
         delete userResponse.contraseña;
@@ -67,8 +72,16 @@ let AuthService = class AuthService {
         if (!isPasswordValid) {
             throw new common_1.UnauthorizedException('Credenciales inválidas');
         }
-        const payload = { correo: user.correo, sub: user._id };
-        const { contraseña, ...userWithoutPassword } = user.toObject();
+        const userObj = user.toObject();
+        if (userObj.activo === false) {
+            throw new common_1.UnauthorizedException('Su cuenta ha sido desactivada. Contacte al administrador.');
+        }
+        const payload = {
+            correo: user.correo,
+            sub: user._id,
+            perfil: userObj.perfil
+        };
+        const { contraseña, ...userWithoutPassword } = userObj;
         const userResponse = {
             ...userWithoutPassword,
             id: userWithoutPassword._id.toString()
@@ -102,7 +115,14 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException('Usuario no encontrado');
         }
         const userObj = typeof user.toObject === 'function' ? user.toObject() : user;
-        const payload = { correo: userObj.correo, sub: userObj._id || userId };
+        if (userObj.activo === false) {
+            throw new common_1.UnauthorizedException('Su cuenta ha sido desactivada. Contacte al administrador.');
+        }
+        const payload = {
+            correo: userObj.correo,
+            sub: userObj._id || userId,
+            perfil: userObj.perfil
+        };
         return {
             access_token: this.jwtService.sign(payload),
         };

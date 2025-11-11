@@ -56,4 +56,33 @@ export class UsersService {
   async update(id: string, updateData: Partial<User>): Promise<User | null> {
     return this.userModel.findByIdAndUpdate(id, updateData, { new: true }).select('-contraseña').exec();
   }
+
+  // Métodos para administración de usuarios
+
+  async findAll(): Promise<User[]> {
+    return this.userModel.find().select('-contraseña').exec();
+  }
+
+  async createUserAsAdmin(userData: RegisterDto & { perfil?: string }): Promise<User> {
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(userData.contraseña, saltRounds);
+
+    const createdUser = new this.userModel({
+      ...userData,
+      contraseña: hashedPassword,
+      fechaNacimiento: new Date(userData.fechaNacimiento),
+      perfil: userData.perfil || 'usuario',
+      activo: true,
+    });
+
+    return createdUser.save();
+  }
+
+  async deactivate(id: string): Promise<User | null> {
+    return this.userModel.findByIdAndUpdate(id, { activo: false }, { new: true }).select('-contraseña').exec();
+  }
+
+  async activate(id: string): Promise<User | null> {
+    return this.userModel.findByIdAndUpdate(id, { activo: true }, { new: true }).select('-contraseña').exec();
+  }
 }

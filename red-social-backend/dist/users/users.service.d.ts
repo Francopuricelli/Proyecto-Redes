@@ -12,4 +12,10 @@ export declare class UsersService {
     findByEmailOrUsername(usuario: string): Promise<UserDocument | null>;
     validatePassword(user: UserDocument, password: string): Promise<boolean>;
     update(id: string, updateData: Partial<User>): Promise<User | null>;
+    findAll(): Promise<User[]>;
+    createUserAsAdmin(userData: RegisterDto & {
+        perfil?: string;
+    }): Promise<User>;
+    deactivate(id: string): Promise<User | null>;
+    activate(id: string): Promise<User | null>;
 }

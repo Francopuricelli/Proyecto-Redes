@@ -21,6 +21,7 @@ let User = class User {
     descripcionBreve;
     imagenPerfil;
     perfil;
+    activo;
     fechaRegistro;
 };
 exports.User = User;
@@ -60,6 +61,10 @@ __decorate([
     (0, mongoose_1.Prop)({ default: 'usuario', enum: ['usuario', 'administrador'] }),
     __metadata("design:type", String)
 ], User.prototype, "perfil", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: true }),
+    __metadata("design:type", Boolean)
+], User.prototype, "activo", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ default: Date.now }),
     __metadata("design:type", Date)

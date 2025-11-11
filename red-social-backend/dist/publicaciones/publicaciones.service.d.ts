@@ -11,7 +11,7 @@ export declare class PublicacionesService {
     obtenerPorId(id: string): Promise<any>;
     obtenerPorUsuario(usuarioId: string): Promise<Publicacion[]>;
     actualizar(id: string, actualizarPublicacionDto: ActualizarPublicacionDto, usuarioId: string): Promise<PublicacionDocument | null>;
-    eliminar(id: string, usuarioId: string): Promise<{
+    eliminar(id: string, usuarioId: string, perfil?: string): Promise<{
         mensaje: string;
     }>;
     darLike(id: string, usuarioId: string): Promise<PublicacionDocument | null>;

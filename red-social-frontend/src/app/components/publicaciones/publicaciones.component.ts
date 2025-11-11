@@ -343,4 +343,8 @@ export class PublicacionesComponent implements OnInit {
   logout(): void {
     this.authService.logout();
   }
+
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
 }

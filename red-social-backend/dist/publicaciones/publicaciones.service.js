@@ -136,12 +136,12 @@ let PublicacionesService = class PublicacionesService {
             .populate('comentarios.autor', 'nombre apellido nombreUsuario imagenPerfil')
             .exec();
     }
-    async eliminar(id, usuarioId) {
+    async eliminar(id, usuarioId, perfil) {
         const publicacion = await this.publicacionModel.findById(id);
         if (!publicacion || publicacion.eliminada) {
             throw new common_1.NotFoundException('Publicación no encontrada');
         }
-        if (publicacion.autor.toString() !== usuarioId) {
+        if (publicacion.autor.toString() !== usuarioId && perfil !== 'administrador') {
             throw new common_1.ForbiddenException('No tienes permisos para eliminar esta publicación');
         }
         await this.publicacionModel.findByIdAndUpdate(id, { eliminada: true });

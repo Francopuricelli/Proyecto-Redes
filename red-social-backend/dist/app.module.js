@@ -18,6 +18,7 @@ const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
 const publicaciones_module_1 = require("./publicaciones/publicaciones.module");
 const cloudinary_module_1 = require("./cloudinary/cloudinary.module");
+const estadisticas_module_1 = require("./estadisticas/estadisticas.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -42,6 +43,7 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             publicaciones_module_1.PublicacionesModule,
             cloudinary_module_1.CloudinaryModule,
+            estadisticas_module_1.EstadisticasModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

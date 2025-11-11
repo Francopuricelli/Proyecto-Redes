@@ -92,6 +92,27 @@ let UsersService = class UsersService {
     async update(id, updateData) {
         return this.userModel.findByIdAndUpdate(id, updateData, { new: true }).select('-contraseña').exec();
     }
+    async findAll() {
+        return this.userModel.find().select('-contraseña').exec();
+    }
+    async createUserAsAdmin(userData) {
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(userData.contraseña, saltRounds);
+        const createdUser = new this.userModel({
+            ...userData,
+            contraseña: hashedPassword,
+            fechaNacimiento: new Date(userData.fechaNacimiento),
+            perfil: userData.perfil || 'usuario',
+            activo: true,
+        });
+        return createdUser.save();
+    }
+    async deactivate(id) {
+        return this.userModel.findByIdAndUpdate(id, { activo: false }, { new: true }).select('-contraseña').exec();
+    }
+    async activate(id) {
+        return this.userModel.findByIdAndUpdate(id, { activo: true }, { new: true }).select('-contraseña').exec();
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([

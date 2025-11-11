@@ -80,7 +80,7 @@ export class PublicacionesController {
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async eliminar(@Param('id') id: string, @Request() req) {
-    return await this.publicacionesService.eliminar(id, req.user.id);
+    return await this.publicacionesService.eliminar(id, req.user.id, req.user.perfil);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -51,11 +51,16 @@ export class AuthService {
     };
 
     const user = await this.usersService.create(userData);
-    const payload = { correo: user.correo, sub: (user as any)._id };
+    const userObj = (user as any).toObject();
+    const payload = { 
+      correo: user.correo, 
+      sub: (user as any)._id,
+      perfil: userObj.perfil 
+    };
     
     // Agregar el campo id desde _id para el frontend
     const userResponse: any = {
-      ...(user as any).toObject(),
+      ...userObj,
       id: (user as any)._id.toString()
     };
     // Remover contraseña
@@ -80,10 +85,20 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const payload = { correo: user.correo, sub: (user as any)._id };
+    // Verificar si el usuario está activo
+    const userObj = user.toObject();
+    if (userObj.activo === false) {
+      throw new UnauthorizedException('Su cuenta ha sido desactivada. Contacte al administrador.');
+    }
+
+    const payload = { 
+      correo: user.correo, 
+      sub: (user as any)._id,
+      perfil: userObj.perfil 
+    };
     
     // Remover la contraseña del objeto usuario para la respuesta
-    const { contraseña, ...userWithoutPassword } = user.toObject();
+    const { contraseña, ...userWithoutPassword } = userObj;
     
     // Agregar el campo id desde _id para el frontend
     const userResponse: any = {
@@ -131,7 +146,17 @@ export class AuthService {
     }
 
     const userObj = typeof (user as any).toObject === 'function' ? (user as any).toObject() : user;
-    const payload = { correo: userObj.correo, sub: userObj._id || userId };
+    
+    // Verificar si el usuario está activo
+    if (userObj.activo === false) {
+      throw new UnauthorizedException('Su cuenta ha sido desactivada. Contacte al administrador.');
+    }
+
+    const payload = { 
+      correo: userObj.correo, 
+      sub: userObj._id || userId,
+      perfil: userObj.perfil 
+    };
     
     return {
       access_token: this.jwtService.sign(payload),

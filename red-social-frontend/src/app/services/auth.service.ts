@@ -91,6 +91,11 @@ export class AuthService {
     return !!this.getLocalStorageItem('access_token');
   }
 
+  isAdmin(): boolean {
+    const user = this.getCurrentUser();
+    return user?.perfil === 'administrador';
+  }
+
   getToken(): string | null {
     return this.getLocalStorageItem('access_token');
   }

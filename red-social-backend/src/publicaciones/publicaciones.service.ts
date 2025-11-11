@@ -181,14 +181,15 @@ export class PublicacionesService {
       .exec();
   }
 
-  async eliminar(id: string, usuarioId: string): Promise<{ mensaje: string }> {
+  async eliminar(id: string, usuarioId: string, perfil?: string): Promise<{ mensaje: string }> {
     const publicacion = await this.publicacionModel.findById(id);
     
     if (!publicacion || publicacion.eliminada) {
       throw new NotFoundException('Publicación no encontrada');
     }
     
-    if (publicacion.autor.toString() !== usuarioId) {
+    // Permitir eliminación si es el autor o si es administrador
+    if (publicacion.autor.toString() !== usuarioId && perfil !== 'administrador') {
       throw new ForbiddenException('No tienes permisos para eliminar esta publicación');
     }
 

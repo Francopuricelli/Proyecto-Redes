@@ -41,7 +41,7 @@ let PublicacionesController = class PublicacionesController {
         return await this.publicacionesService.actualizar(id, actualizarPublicacionDto, req.user.id);
     }
     async eliminar(id, req) {
-        return await this.publicacionesService.eliminar(id, req.user.id);
+        return await this.publicacionesService.eliminar(id, req.user.id, req.user.perfil);
     }
     async darLike(id, req) {
         return await this.publicacionesService.darLike(id, req.user.id);
