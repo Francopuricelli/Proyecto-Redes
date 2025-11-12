@@ -186,6 +186,18 @@
           (onClick)="verDetallePublicacion($event)">
         </app-publicacion-card>
 
+        <!-- Botón cargar más publicaciones -->
+        <div *ngIf="hayMasPublicaciones && publicaciones.length > 0" class="text-center mt-4 mb-4">
+          <button 
+            class="btn btn-outline-primary btn-lg"
+            (click)="cargarMasPublicaciones()"
+            [disabled]="cargandoMas">
+            <span *ngIf="cargandoMas" class="spinner-border spinner-border-sm me-2"></span>
+            <i *ngIf="!cargandoMas" class="fas fa-arrow-down me-2"></i>
+            {{ cargandoMas ? 'Cargando...' : 'Cargar más publicaciones' }}
+          </button>
+        </div>
+
         <!-- Mensaje cuando no hay publicaciones -->
         <div *ngIf="publicaciones.length === 0" class="text-center py-5">
           <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>

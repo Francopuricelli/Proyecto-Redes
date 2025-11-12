@@ -13,6 +13,9 @@ export declare class UsersService {
     validatePassword(user: UserDocument, password: string): Promise<boolean>;
     update(id: string, updateData: Partial<User>): Promise<User | null>;
     findAll(): Promise<User[]>;
+    validateUserCreation(createUserDto: RegisterDto & {
+        perfil?: string;
+    }): Promise<void>;
     createUserAsAdmin(userData: RegisterDto & {
         perfil?: string;
     }): Promise<User>;

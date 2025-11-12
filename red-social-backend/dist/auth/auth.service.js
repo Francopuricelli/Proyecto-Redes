@@ -13,12 +13,43 @@ exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const users_service_1 = require("../users/users.service");
+const cloudinary_service_1 = require("../cloudinary/cloudinary.service");
+const register_dto_1 = require("./dto/register.dto");
+const class_transformer_1 = require("class-transformer");
+const class_validator_1 = require("class-validator");
 let AuthService = class AuthService {
     usersService;
     jwtService;
-    constructor(usersService, jwtService) {
+    cloudinaryService;
+    constructor(usersService, jwtService, cloudinaryService) {
         this.usersService = usersService;
         this.jwtService = jwtService;
+        this.cloudinaryService = cloudinaryService;
+    }
+    async validateAndBuildRegisterDto(body, file) {
+        const passwordKey = Object.keys(body).find(key => key === 'contraseña' || key.includes('contrase'));
+        const password = passwordKey ? body[passwordKey] : undefined;
+        const registerDto = {
+            nombre: body.nombre,
+            apellido: body.apellido,
+            correo: body.correo,
+            nombreUsuario: body.nombreUsuario,
+            contraseña: password,
+            fechaNacimiento: body.fechaNacimiento,
+            descripcionBreve: body.descripcionBreve,
+        };
+        const dtoInstance = (0, class_transformer_1.plainToInstance)(register_dto_1.RegisterDto, registerDto);
+        const errors = await (0, class_validator_1.validate)(dtoInstance);
+        if (errors.length > 0) {
+            const messages = errors.map(error => Object.values(error.constraints || {})).flat();
+            throw new common_1.BadRequestException(messages);
+        }
+        let imagenPerfil;
+        if (file) {
+            const result = await this.cloudinaryService.uploadImage(file, 'perfiles');
+            imagenPerfil = result.secure_url;
+        }
+        return { dto: registerDto, imagenPerfil };
     }
     async register(registerDto, imagenPerfil) {
         const existingEmail = await this.usersService.findByEmail(registerDto.correo);
@@ -132,6 +163,7 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [users_service_1.UsersService,
-        jwt_1.JwtService])
+        jwt_1.JwtService,
+        cloudinary_service_1.CloudinaryService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

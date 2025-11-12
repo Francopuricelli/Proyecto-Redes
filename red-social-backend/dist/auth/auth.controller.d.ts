@@ -1,10 +1,8 @@
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
 export declare class AuthController {
     private readonly authService;
-    private readonly cloudinaryService;
-    constructor(authService: AuthService, cloudinaryService: CloudinaryService);
+    constructor(authService: AuthService);
     register(body: any, file?: Express.Multer.File): Promise<{
         user: import("../users/schemas/user.schema").User;
         access_token: string;

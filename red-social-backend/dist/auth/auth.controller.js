@@ -16,43 +16,16 @@ exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const auth_service_1 = require("./auth.service");
-const register_dto_1 = require("./dto/register.dto");
 const login_dto_1 = require("./dto/login.dto");
-const cloudinary_service_1 = require("../cloudinary/cloudinary.service");
-const class_transformer_1 = require("class-transformer");
-const class_validator_1 = require("class-validator");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 let AuthController = class AuthController {
     authService;
-    cloudinaryService;
-    constructor(authService, cloudinaryService) {
+    constructor(authService) {
         this.authService = authService;
-        this.cloudinaryService = cloudinaryService;
     }
     async register(body, file) {
-        const passwordKey = Object.keys(body).find(key => key === 'contraseña' || key.includes('contrase'));
-        const password = passwordKey ? body[passwordKey] : undefined;
-        const registerDto = {
-            nombre: body.nombre,
-            apellido: body.apellido,
-            correo: body.correo,
-            nombreUsuario: body.nombreUsuario,
-            contraseña: password,
-            fechaNacimiento: body.fechaNacimiento,
-            descripcionBreve: body.descripcionBreve,
-        };
-        const dtoInstance = (0, class_transformer_1.plainToInstance)(register_dto_1.RegisterDto, registerDto);
-        const errors = await (0, class_validator_1.validate)(dtoInstance);
-        if (errors.length > 0) {
-            const messages = errors.map(error => Object.values(error.constraints || {})).flat();
-            throw new common_1.BadRequestException(messages);
-        }
-        let imagenPerfil;
-        if (file) {
-            const result = await this.cloudinaryService.uploadImage(file, 'perfiles');
-            imagenPerfil = result.secure_url;
-        }
-        return this.authService.register(registerDto, imagenPerfil);
+        const { dto, imagenPerfil } = await this.authService.validateAndBuildRegisterDto(body, file);
+        return this.authService.register(dto, imagenPerfil);
     }
     async login(loginDto) {
         return this.authService.login(loginDto);
@@ -112,7 +85,6 @@ __decorate([
 ], AuthController.prototype, "refrescar", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService,
-        cloudinary_service_1.CloudinaryService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

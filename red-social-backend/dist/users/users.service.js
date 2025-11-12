@@ -95,6 +95,32 @@ let UsersService = class UsersService {
     async findAll() {
         return this.userModel.find().select('-contraseña').exec();
     }
+    async validateUserCreation(createUserDto) {
+        const existingEmail = await this.findByEmail(createUserDto.correo);
+        if (existingEmail) {
+            throw new common_1.ConflictException('El correo electrónico ya está registrado');
+        }
+        const existingUsername = await this.findByUsername(createUserDto.nombreUsuario);
+        if (existingUsername) {
+            throw new common_1.ConflictException('El nombre de usuario ya está registrado');
+        }
+        const birthDate = new Date(createUserDto.fechaNacimiento);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        if (age < 13) {
+            throw new common_1.BadRequestException('El usuario debe ser mayor de 13 años');
+        }
+        const hasUppercase = /[A-Z]/.test(createUserDto.contraseña);
+        const hasNumber = /\d/.test(createUserDto.contraseña);
+        const hasMinLength = createUserDto.contraseña.length >= 8;
+        if (!(hasUppercase && hasNumber && hasMinLength)) {
+            throw new common_1.BadRequestException('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
+        }
+    }
     async createUserAsAdmin(userData) {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(userData.contraseña, saltRounds);
